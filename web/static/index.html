@@ -1,0 +1,1586 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Bitget Wallet — 查價 · 安全檢查 · Swap 報價</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0A141A;
+      --bg-header: #0A141A;
+      --surface: #0F1920;
+      --surface-hover: #152028;
+      --border: #1E2D38;
+      --text: #FFFFFF;
+      --text-muted: #848E9C;
+      --accent: #00E5CC;
+      --accent-hover: #33EBD6;
+      --accent-dim: #00B8A3;
+      --success: #0ECB81;
+      --warn: #00E5CC;
+      --danger: #F6465D;
+      --radius: 16px;
+      --radius-sm: 8px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: 'Outfit', -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+    .container { max-width: 680px; margin: 0 auto; padding: 0 1.25rem 2rem; }
+
+    .header-wrap {
+      background: var(--bg-header);
+      border-bottom: 1px solid var(--border);
+      padding: 1.5rem 0 1.25rem;
+      margin-bottom: 1.5rem;
+    }
+    .header-inner {
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 0 1.25rem;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .brand-left {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .logo-wrap {
+      flex-shrink: 0;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .logo-wrap img,
+    .logo-wrap svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: contain;
+    }
+    .brand-text h1 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      margin: 0 0 0.2rem 0;
+      letter-spacing: -0.02em;
+      color: var(--text);
+    }
+    .brand-text .tagline {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin: 0;
+    }
+    .brand-text .tagline a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+    .brand-text .tagline a:hover { text-decoration: underline; }
+    .currency-wrap {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .currency-wrap span {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+    .currency-pill {
+      display: flex;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    .currency-pill button {
+      font-family: inherit;
+      font-size: 0.8rem;
+      font-weight: 500;
+      padding: 0.4rem 0.75rem;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+    .currency-pill button.active {
+      background: var(--accent);
+      color: #0A141A;
+    }
+    .currency-pill button:not(.active):hover {
+      background: var(--surface-hover);
+      color: var(--text);
+    }
+
+    .notice {
+      background: rgba(0, 229, 204, 0.06);
+      border: 1px solid rgba(0, 229, 204, 0.2);
+      border-radius: var(--radius-sm);
+      padding: 0.65rem 1rem;
+      margin-bottom: 1.25rem;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+    .notice strong { color: var(--accent); }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 1rem;
+    }
+    .card h2 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      margin: 0 0 1rem 0;
+      color: var(--accent);
+    }
+    .form-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      align-items: flex-end;
+      margin-bottom: 0.75rem;
+    }
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+    .field label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    input, select {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.9rem;
+      padding: 0.5rem 0.65rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      min-width: 140px;
+    }
+    input::placeholder { color: var(--text-muted); }
+    input:focus, select:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+    button.primary {
+      font-family: inherit;
+      font-weight: 600;
+      font-size: 0.9rem;
+      padding: 0.55rem 1.1rem;
+      background: var(--accent);
+      color: #0A141A;
+      border: none;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+    }
+    button.primary:hover { background: var(--accent-hover); }
+    button.primary:active { transform: scale(0.98); }
+    button.primary:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .result {
+      margin-top: 1rem;
+      padding: 1rem 1.25rem;
+      background: var(--bg);
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      display: none;
+    }
+    .result.visible { display: block; }
+    .result.error { border-color: var(--danger); color: var(--danger); font-size: 0.9rem; }
+    .result .price-big {
+      display: block;
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--accent);
+      margin: 0 0 0.25rem 0;
+    }
+    .result .currency-note {
+      display: block;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 0.25rem;
+    }
+    .result .security-ok { color: var(--success); font-size: 1rem; }
+    .result .security-warn { color: var(--warn); font-size: 1rem; }
+    .result .security-bad { color: var(--danger); font-size: 1rem; }
+    .result .result-muted { color: var(--text-muted); font-size: 0.95rem; }
+
+    .semi-step {
+      margin-bottom: 1.5rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .semi-step:last-of-type { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+    .step-label { display: block; margin-bottom: 0.5rem; color: var(--accent); font-size: 0.9rem; }
+
+    .chart-wrap {
+      margin-top: 1rem;
+      height: 320px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      display: none;
+    }
+    .chart-wrap.visible { display: block; }
+    .chart-wrap.error { padding: 1rem; color: var(--danger); font-size: 0.9rem; }
+
+    footer {
+      margin-top: 2rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+    footer a { color: var(--accent); }
+
+    .pnl-table-wrap { overflow-x: auto; margin-top: 0.75rem; }
+    .pnl-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+    .pnl-table th, .pnl-table td {
+      padding: 0.5rem 0.4rem;
+      text-align: right;
+      border-bottom: 1px solid var(--border);
+    }
+    .pnl-table th:first-child, .pnl-table td:first-child { text-align: left; }
+    .pnl-table th { color: var(--text-muted); font-weight: 600; font-size: 0.72rem; text-transform: uppercase; }
+    .pnl-pos { color: var(--success); }
+    .pnl-neg { color: var(--danger); }
+    .pnl-total {
+      margin-top: 1rem;
+      padding: 1rem;
+      background: var(--bg);
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      font-size: 0.95rem;
+    }
+    .pnl-total strong { color: var(--accent); }
+    .btn-small {
+      font-size: 0.8rem;
+      padding: 0.35rem 0.6rem;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+    }
+    .btn-small:hover { border-color: var(--danger); color: var(--danger); }
+
+    .wallet-panel {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 0.75rem 1rem;
+      margin-top: 0.75rem;
+      font-size: 0.88rem;
+    }
+    .wallet-panel .addr { font-family: 'JetBrains Mono', monospace; word-break: break-all; color: var(--accent); }
+    .wallet-row { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-top: 0.5rem; }
+  </style>
+</head>
+<body>
+  <header class="header-wrap">
+    <div class="header-inner">
+      <div class="brand">
+        <div class="brand-left">
+          <a href="https://web3.bitget.com/en/bitget-wallet-skill" target="_blank" rel="noopener" class="logo-wrap" aria-label="Bitget Wallet">
+            <img src="logo.png" alt="Bitget Wallet" width="40" height="40" />
+          </a>
+          <div class="brand-text">
+            <h1>Bitget Wallet</h1>
+            <p class="tagline">Your Web3 Trading Wallet of the Future · <a href="https://web3.bitget.com/en/bitget-wallet-skill" target="_blank" rel="noopener">官網</a></p>
+          </div>
+        </div>
+        <div class="currency-wrap">
+          <span>顯示幣別</span>
+          <div class="currency-pill">
+            <button type="button" id="cur-usd" class="active">美金 (USD)</button>
+            <button type="button" id="cur-twd">台幣 (TWD)</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="notice">
+      <strong>僅報價與流程，不自動交易。</strong> 這裡可查價格、安全檢查、Swap 報價；實際下單需您本人在錢包內確認並簽名，不會未經同意自動執行交易。
+    </div>
+
+    <section class="card">
+      <h2>連接錢包（EVM）</h2>
+      <p style="font-size:0.85rem; color: var(--text-muted); margin: 0 0 0.75rem 0;">優先使用 <strong>Bitget Wallet</strong> 擴充套件（<code>window.bitkeep.ethereum</code>），若沒有則嘗試 <code>window.ethereum</code>（如 MetaMask）。連線後可讀主幣餘額、帶入 Swap 地址；簽名仍由錢包彈窗確認。</p>
+      <div class="form-row">
+        <button type="button" id="btn-wallet-connect" class="primary">連接錢包</button>
+        <button type="button" id="btn-wallet-disconnect" class="btn-small" style="display:none">斷開</button>
+        <button type="button" id="btn-wallet-refresh-bal" class="btn-small" style="display:none">讀取主幣餘額</button>
+      </div>
+      <div class="wallet-panel" id="wallet-panel" style="display:none">
+        <div><strong>地址</strong> <span class="addr" id="wallet-address"></span></div>
+        <div style="margin-top:0.35rem"><strong>Chain ID</strong> <span id="wallet-chainid"></span> → API 鏈代碼 <code id="wallet-chain-code">—</code></div>
+        <div style="margin-top:0.35rem"><strong>主幣餘額</strong> <span id="wallet-balance">—</span></div>
+        <div class="wallet-row">
+          <button type="button" class="btn-small" id="btn-wallet-fill-swap">帶入「半自動 Swap」from 地址</button>
+          <button type="button" class="btn-small" id="btn-wallet-fill-pnl">將主幣餘額帶入 PnL 數量（須自填均價）</button>
+        </div>
+      </div>
+      <p style="font-size:0.78rem; color: var(--text-muted); margin: 0.75rem 0 0 0;"><strong>用程式發交易：</strong>取得 <code>provider</code> 後使用 <code>await provider.request({ method: 'eth_requestAccounts' })</code> 連線，再以 <code>eth_sendTransaction</code> 送出（<code>from</code> 須為目前帳戶、<code>to</code>/<code>data</code>/<code>value</code> 須與 API 回傳一致）。勿把私鑰寫進網頁。</p>
+    </section>
+
+    <section class="card">
+      <h2>Token 價格</h2>
+      <div class="form-row">
+        <div class="field">
+          <label>鏈</label>
+          <select id="price-chain">
+            <option value="sol">Solana (SOL)</option>
+            <option value="eth">Ethereum (ETH)</option>
+            <option value="bnb">BNB Chain (BNB)</option>
+            <option value="base">Base</option>
+            <option value="arbitrum">Arbitrum</option>
+            <option value="matic">Polygon</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>合約（原生代幣留空）</label>
+          <input type="text" id="price-contract" placeholder="留空 = 原生幣" />
+        </div>
+        <button type="button" id="btn-price" class="primary">查詢價格</button>
+      </div>
+      <div class="result" id="price-result"></div>
+    </section>
+
+    <section class="card">
+      <h2>持倉 PnL 試算</h2>
+      <p style="font-size:0.85rem; color: var(--text-muted); margin: 0 0 0.75rem 0;">手動輸入「買了多少、平均買入價（USD）」，按「更新行情」用 Bitget 價格 API 算現值與損益。資料只存在本機瀏覽器，不會上傳私鑰。黑客松比 PnL 時可搭配實盤持倉自行對照。</p>
+      <div class="form-row">
+        <div class="field">
+          <label>鏈</label>
+          <select id="pnl-chain">
+            <option value="sol">Solana</option>
+            <option value="eth">Ethereum</option>
+            <option value="bnb">BNB</option>
+            <option value="base">Base</option>
+            <option value="arbitrum">Arbitrum</option>
+            <option value="matic">Polygon</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>合約（原生留空）</label>
+          <input type="text" id="pnl-contract" placeholder="留空 = 原生幣" />
+        </div>
+        <div class="field">
+          <label>備註（選填）</label>
+          <input type="text" id="pnl-label" placeholder="如 SOL 現貨" />
+        </div>
+        <div class="field">
+          <label>持有數量</label>
+          <input type="text" id="pnl-qty" placeholder="1.5" style="min-width:90px" />
+        </div>
+        <div class="field">
+          <label>平均買入價 (USD)</label>
+          <input type="text" id="pnl-avg" placeholder="80" style="min-width:90px" />
+        </div>
+        <button type="button" id="btn-pnl-add" class="primary">加入持倉</button>
+      </div>
+      <div class="form-row">
+        <button type="button" id="btn-pnl-refresh" class="primary">更新行情（算 PnL）</button>
+        <button type="button" id="btn-pnl-clear" class="btn-small" style="margin-left:0.5rem">清空全部持倉</button>
+      </div>
+      <div class="pnl-table-wrap">
+        <table class="pnl-table" id="pnl-table" style="display:none">
+          <thead>
+            <tr>
+              <th>標的</th>
+              <th>數量</th>
+              <th>均價 USD</th>
+              <th>現價 USD</th>
+              <th>成本 USD</th>
+              <th>現值 USD</th>
+              <th>PnL USD</th>
+              <th>PnL %</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="pnl-tbody"></tbody>
+        </table>
+        <p id="pnl-empty" style="color:var(--text-muted); font-size:0.9rem; margin-top:0.5rem">尚無持倉，請先加入。</p>
+      </div>
+      <div class="pnl-total" id="pnl-total" style="display:none"></div>
+    </section>
+
+    <section class="card">
+      <h2>安全檢查</h2>
+      <div class="form-row">
+        <div class="field">
+          <label>鏈</label>
+          <select id="sec-chain">
+            <option value="sol">Solana</option>
+            <option value="eth">Ethereum</option>
+            <option value="bnb">BNB Chain</option>
+            <option value="base">Base</option>
+            <option value="arbitrum">Arbitrum</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>合約地址</label>
+          <input type="text" id="sec-contract" placeholder="0x... 或 Solana 地址" />
+        </div>
+        <button type="button" id="btn-security" class="primary">執行安全檢查</button>
+      </div>
+      <div class="result" id="security-result"></div>
+    </section>
+
+    <section class="card">
+      <h2>Swap 報價</h2>
+      <p style="font-size:0.85rem; color: var(--text-muted); margin: 0 0 0.75rem 0;">輸入從哪個代幣、數量、換成哪個代幣，取得預估可換數量。</p>
+      <div class="form-row">
+        <div class="field">
+          <label>從鏈</label>
+          <select id="swap-from-chain">
+            <option value="sol">Solana</option>
+            <option value="eth">Ethereum</option>
+            <option value="bnb">BNB Chain</option>
+            <option value="base">Base</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>從合約（原生留空）</label>
+          <input type="text" id="swap-from-contract" placeholder='"" = 原生' />
+        </div>
+        <div class="field">
+          <label>數量</label>
+          <input type="text" id="swap-amount" placeholder="1" />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field">
+          <label>到鏈</label>
+          <select id="swap-to-chain">
+            <option value="">同 from 鏈</option>
+            <option value="sol">Solana</option>
+            <option value="eth">Ethereum</option>
+            <option value="bnb">BNB Chain</option>
+            <option value="base">Base</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>到合約</label>
+          <input type="text" id="swap-to-contract" placeholder="USDC 等合約地址" />
+        </div>
+        <button type="button" id="btn-swap" class="primary">取得報價</button>
+      </div>
+      <div class="result" id="swap-result"></div>
+    </section>
+
+    <section class="card">
+      <h2>同鏈 Swap（Calldata + 錢包簽名）</h2>
+      <p style="font-size:0.85rem; color: var(--text-muted); margin: 0 0 0.75rem 0;">僅 <strong>EVM 同鏈</strong>（例如 Base 上 USDC→WETH）。流程：① 報價拿 <code>market</code> → ② 取得 <code>calldata</code> → ③ 用已連接錢包送出（<code>eth_sendTransaction</code>），錢包會跳出確認。請先將錢包切到對應網路。若需跨鏈請用下方 Order 模式。</p>
+      <div class="form-row">
+        <div class="field">
+          <label>鏈</label>
+          <select id="cal-chain">
+            <option value="base">Base</option>
+            <option value="eth">Ethereum</option>
+            <option value="bnb">BNB Chain</option>
+            <option value="arbitrum">Arbitrum</option>
+            <option value="matic">Polygon</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>從合約（原生留空）</label>
+          <input type="text" id="cal-from-contract" placeholder="如 USDC" />
+        </div>
+        <div class="field">
+          <label>到合約</label>
+          <input type="text" id="cal-to-contract" placeholder="目標代幣合約" />
+        </div>
+        <div class="field">
+          <label>數量</label>
+          <input type="text" id="cal-amount" placeholder="1" style="min-width:80px" />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field">
+          <label>From 地址</label>
+          <input type="text" id="cal-from-address" placeholder="0x..." />
+        </div>
+        <div class="field">
+          <label>To 地址（通常同 From）</label>
+          <input type="text" id="cal-to-address" placeholder="0x..." />
+        </div>
+        <button type="button" class="btn-small" id="btn-wallet-fill-cal">帶入已連接錢包地址</button>
+      </div>
+      <div class="form-row">
+        <button type="button" id="btn-cal-quote" class="primary">1. 取得報價</button>
+        <button type="button" id="btn-cal-build" class="primary">2. 取得 Calldata</button>
+        <button type="button" id="btn-cal-send" class="primary">3. 錢包簽名並送出</button>
+      </div>
+      <div class="result" id="cal-flow-result"></div>
+    </section>
+
+    <section class="card">
+      <h2>半自動 Swap（Order 模式）</h2>
+      <p style="font-size:0.85rem; color: var(--text-muted); margin: 0 0 0.5rem 0;">依序：① 取得報價 → ② 建立訂單（取得待簽名資料）→ ③ 在錢包內簽名 → ④ 貼上已簽名交易並送出。本頁不持有私鑰，僅代為取得報價、建立訂單、代為廣播已簽名交易。</p>
+      <div class="semi-step">
+        <strong class="step-label">① 取得報價</strong>
+        <div class="form-row">
+          <div class="field">
+            <label>從鏈</label>
+            <select id="ord-from-chain">
+              <option value="base">Base</option>
+              <option value="eth">Ethereum</option>
+              <option value="bnb">BNB Chain</option>
+              <option value="sol">Solana</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>從合約（原生留空）</label>
+            <input type="text" id="ord-from-contract" placeholder="USDC Base: 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" />
+          </div>
+          <div class="field">
+            <label>數量</label>
+            <input type="text" id="ord-amount" placeholder="10" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="field">
+            <label>到鏈</label>
+            <select id="ord-to-chain">
+              <option value="bnb">BNB Chain</option>
+              <option value="base">Base</option>
+              <option value="eth">Ethereum</option>
+              <option value="sol">Solana</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>到合約</label>
+            <input type="text" id="ord-to-contract" placeholder="USDT BNB: 0x55d398326f99059fF775485246999027B3197955" />
+          </div>
+          <div class="field">
+            <label>你的錢包地址（from）</label>
+            <input type="text" id="ord-from-address" placeholder="0x..." />
+          </div>
+          <div class="field">
+            <label>收件地址（選填，預設同 from）</label>
+            <input type="text" id="ord-to-address" placeholder="留空 = 同 from" />
+          </div>
+        </div>
+        <button type="button" id="btn-order-quote" class="primary">1. 取得報價</button>
+        <div class="result" id="order-quote-result"></div>
+      </div>
+      <div class="semi-step">
+        <strong class="step-label">② 建立訂單</strong>
+        <div class="form-row">
+          <div class="field">
+            <label>滑價容差 %</label>
+            <input type="text" id="ord-slippage" value="1" placeholder="1" style="min-width:80px" />
+          </div>
+          <div class="field">
+            <label>無 Gas（EVM）</label>
+            <select id="ord-feature">
+              <option value="">一般</option>
+              <option value="no_gas">no_gas（從代幣扣 gas）</option>
+            </select>
+          </div>
+        </div>
+        <button type="button" id="btn-order-create" class="primary">2. 建立訂單</button>
+        <div class="result" id="order-create-result"></div>
+      </div>
+      <div class="semi-step">
+        <strong class="step-label">③ 送出已簽名交易</strong>
+        <p style="font-size:0.8rem; color: var(--text-muted); margin: 0 0 0.5rem 0;">請在 Bitget Wallet 或支援的錢包中簽名後，將已簽名的 raw hex（0x 開頭）貼到下方，可多筆以空格或換行分隔。</p>
+        <div class="form-row">
+          <div class="field" style="flex:1; min-width:200px">
+            <label>訂單 ID</label>
+            <input type="text" id="ord-order-id" placeholder="從步驟② 複製" />
+          </div>
+        </div>
+        <div class="field" style="margin-top:0.5rem">
+          <label>已簽名交易 (0x...)</label>
+          <textarea id="ord-signed-txs" rows="3" placeholder="0x..." style="width:100%; font-family: monospace; font-size:0.85rem; padding:0.5rem; background: var(--bg); border:1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); resize:vertical"></textarea>
+        </div>
+        <button type="button" id="btn-order-submit" class="primary">3. 送出已簽名交易</button>
+        <div class="result" id="order-submit-result"></div>
+      </div>
+      <div class="semi-step">
+        <strong class="step-label">④ 查詢訂單狀態</strong>
+        <div class="form-row">
+          <div class="field" style="flex:1; min-width:200px">
+            <label>訂單 ID</label>
+            <input type="text" id="ord-status-id" placeholder="與步驟② 相同" />
+          </div>
+          <button type="button" id="btn-order-status" class="primary">查詢狀態</button>
+        </div>
+        <div class="result" id="order-status-result"></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>幣的走勢圖</h2>
+      <p style="font-size:0.85rem; color: var(--text-muted); margin: 0 0 0.25rem 0;">選擇鏈與代幣，取得 K 線走勢（開高低收）。</p>
+      <p style="font-size:0.8rem; color: var(--text-muted); margin: 0 0 0.75rem 0;">想看 1 年：週期選「1 日」+ 筆數選「365」；想看 5～10 年：週期選「1 週」+ 筆數選「約 5 年」或「約 10 年」。</p>
+      <div class="form-row">
+        <div class="field">
+          <label>鏈</label>
+          <select id="chart-chain">
+            <option value="sol">Solana (SOL)</option>
+            <option value="eth">Ethereum (ETH)</option>
+            <option value="bnb">BNB Chain (BNB)</option>
+            <option value="base">Base</option>
+            <option value="arbitrum">Arbitrum</option>
+            <option value="matic">Polygon</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>合約（原生留空）</label>
+          <input type="text" id="chart-contract" placeholder="留空 = 原生幣" />
+        </div>
+        <div class="field">
+          <label>週期</label>
+          <select id="chart-period">
+            <option value="1m">1 分鐘</option>
+            <option value="5m">5 分鐘</option>
+            <option value="15m">15 分鐘</option>
+            <option value="30m">30 分鐘</option>
+            <option value="1h" selected>1 小時</option>
+            <option value="4h">4 小時</option>
+            <option value="1d">1 日</option>
+            <option value="1w">1 週</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>筆數 / 時間範圍</label>
+          <select id="chart-size">
+            <option value="24">24</option>
+            <option value="48">48</option>
+            <option value="96">96</option>
+            <option value="168">168</option>
+            <option value="365">365（約 1 年，搭 1 日）</option>
+            <option value="260">約 5 年（260 週，搭 1 週）</option>
+            <option value="520">約 10 年（520 週，搭 1 週）</option>
+            <option value="1440">1440（最大，搭 1 日≈4 年 / 1 週≈27 年）</option>
+          </select>
+        </div>
+        <button type="button" id="btn-chart" class="primary">查詢走勢</button>
+      </div>
+      <div class="chart-wrap" id="chart-wrap">
+        <div id="chart-container" style="width:100%;height:100%;"></div>
+      </div>
+    </section>
+
+    <footer>
+      資料來源：Bitget Wallet API · 本頁面僅呼叫本地 scripts，未儲存私鑰。台幣匯率僅供參考，以實際匯率為準。
+    </footer>
+  </div>
+
+  <script src="https://unpkg.com/lightweight-charts@3.8.0/dist/lightweight-charts.standalone.production.js"></script>
+  <script>
+    const API = '';
+    let currency = 'USD';
+    let usdToTwd = 31.5;
+    var lastOrderQuote = null;
+    var lastOrderId = null;
+    var lastCalSwap = null;
+    var lastCalTx = null;
+
+    var evmAccount = null;
+    var evmChainIdHex = null;
+    var evmProvider = null;
+
+    var CHAIN_ID_TO_SKILL = {
+      '0x1': 'eth',
+      '0x38': 'bnb',
+      '0x89': 'matic',
+      '0xa4b1': 'arbitrum',
+      '0x2105': 'base'
+    };
+
+    function getEvmProvider() {
+      if (typeof window !== 'undefined' && window.bitkeep && window.bitkeep.ethereum) {
+        return window.bitkeep.ethereum;
+      }
+      if (typeof window !== 'undefined' && window.ethereum) {
+        return window.ethereum;
+      }
+      return null;
+    }
+
+    function skillChainFromChainId(hex) {
+      if (!hex) return null;
+      var h = String(hex).toLowerCase();
+      if (h.indexOf('0x') !== 0) h = '0x' + BigInt(hex).toString(16);
+      return CHAIN_ID_TO_SKILL[h] || null;
+    }
+
+    function weiHexToEthString(weiHex) {
+      try {
+        var n = Number(BigInt(weiHex)) / 1e18;
+        if (!Number.isFinite(n)) return '0';
+        var s = n.toFixed(8).replace(/\.?0+$/, '');
+        return s || '0';
+      } catch (e) {
+        return '0';
+      }
+    }
+
+    function updateWalletUI() {
+      var panel = document.getElementById('wallet-panel');
+      var btnC = document.getElementById('btn-wallet-connect');
+      var btnD = document.getElementById('btn-wallet-disconnect');
+      var btnB = document.getElementById('btn-wallet-refresh-bal');
+      if (evmAccount) {
+        panel.style.display = 'block';
+        btnC.style.display = 'none';
+        btnD.style.display = 'inline-block';
+        btnB.style.display = 'inline-block';
+        document.getElementById('wallet-address').textContent = evmAccount;
+        document.getElementById('wallet-chainid').textContent = evmChainIdHex || '—';
+        var code = skillChainFromChainId(evmChainIdHex);
+        document.getElementById('wallet-chain-code').textContent = code || '（請切到 ETH/BNB/Base/Arb/Polygon）';
+      } else {
+        panel.style.display = 'none';
+        btnC.style.display = 'inline-block';
+        btnD.style.display = 'none';
+        btnB.style.display = 'none';
+      }
+    }
+
+    document.getElementById('btn-wallet-connect').addEventListener('click', async function () {
+      evmProvider = getEvmProvider();
+      if (!evmProvider) {
+        alert('找不到錢包：請安裝 Bitget Wallet 擴充套件，或安裝 MetaMask。');
+        return;
+      }
+      try {
+        var accounts = await evmProvider.request({ method: 'eth_requestAccounts' });
+        if (!accounts || !accounts[0]) {
+          alert('未取得帳戶');
+          return;
+        }
+        evmAccount = accounts[0];
+        evmChainIdHex = await evmProvider.request({ method: 'eth_chainId' });
+        updateWalletUI();
+        if (typeof evmProvider.on === 'function') {
+          evmProvider.on('accountsChanged', function (accs) {
+            evmAccount = accs && accs[0] ? accs[0] : null;
+            if (!evmAccount) {
+              evmChainIdHex = null;
+              document.getElementById('wallet-balance').textContent = '—';
+            }
+            updateWalletUI();
+          });
+          evmProvider.on('chainChanged', function () {
+            window.location.reload();
+          });
+        }
+      } catch (e) {
+        alert('連接失敗：' + (e && e.message ? e.message : e));
+      }
+    });
+
+    document.getElementById('btn-wallet-disconnect').addEventListener('click', function () {
+      evmAccount = null;
+      evmChainIdHex = null;
+      evmProvider = null;
+      document.getElementById('wallet-balance').textContent = '—';
+      updateWalletUI();
+    });
+
+    document.getElementById('btn-wallet-refresh-bal').addEventListener('click', async function () {
+      if (!evmProvider || !evmAccount) return;
+      var balEl = document.getElementById('wallet-balance');
+      balEl.textContent = '讀取中…';
+      try {
+        var hex = await evmProvider.request({
+          method: 'eth_getBalance',
+          params: [evmAccount, 'latest']
+        });
+        balEl.textContent = weiHexToEthString(hex) + '（原生幣）';
+      } catch (e) {
+        balEl.textContent = '讀取失敗';
+      }
+    });
+
+    document.getElementById('btn-wallet-fill-swap').addEventListener('click', function () {
+      if (!evmAccount) return;
+      document.getElementById('ord-from-address').value = evmAccount;
+      var to = document.getElementById('ord-to-address');
+      if (to && !to.value.trim()) to.value = evmAccount;
+    });
+
+    document.getElementById('btn-wallet-fill-pnl').addEventListener('click', async function () {
+      if (!evmProvider || !evmAccount) return;
+      var code = skillChainFromChainId(evmChainIdHex);
+      if (!code) {
+        alert('目前 Chain ID 無法對應到 PnL 下拉選單，請在錢包切到 Ethereum / BNB / Polygon / Arbitrum / Base。');
+        return;
+      }
+      document.getElementById('pnl-chain').value = code;
+      document.getElementById('pnl-contract').value = '';
+      try {
+        var hex = await evmProvider.request({
+          method: 'eth_getBalance',
+          params: [evmAccount, 'latest']
+        });
+        document.getElementById('pnl-qty').value = weiHexToEthString(hex);
+      } catch (e) {
+        alert('讀取餘額失敗');
+      }
+    });
+
+    async function fetchTwdRate() {
+      try {
+        const r = await fetch('https://cdn.jsdelivr.net/gh/fawazahmed0/currency-api@1/latest/currencies/usd/twd.json');
+        const j = await r.json();
+        if (j && typeof j.twd === 'number') usdToTwd = j.twd;
+      } catch (_) {}
+    }
+    fetchTwdRate();
+
+    function formatPrice(usdValue) {
+      const n = Number(usdValue);
+      if (!Number.isFinite(n) || n < 0) return '—';
+      const maxF = Math.min(20, n >= 1 ? 2 : n >= 0.01 ? 4 : 6);
+      if (currency === 'TWD') {
+        const twd = n * usdToTwd;
+        const opt = { minimumFractionDigits: 0, maximumFractionDigits: 0 };
+        return 'NT$' + twd.toLocaleString('zh-TW', opt);
+      }
+      return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: maxF });
+    }
+
+    function showResult(el, content, isError = false) {
+      el.innerHTML = content;
+      el.classList.add('visible');
+      el.classList.toggle('error', isError);
+    }
+    function setLoading(btn, on, label) {
+      btn.disabled = on;
+      btn.textContent = on ? '查詢中…' : label;
+    }
+
+    var PNL_STORAGE = 'bgw_pnl_positions_v1';
+    function pnlLoad() {
+      try {
+        var j = localStorage.getItem(PNL_STORAGE);
+        return j ? JSON.parse(j) : [];
+      } catch (e) { return []; }
+    }
+    function pnlSave(arr) {
+      localStorage.setItem(PNL_STORAGE, JSON.stringify(arr));
+    }
+    function pnlUid() { return 'p' + Date.now() + '_' + Math.random().toString(36).slice(2, 8); }
+
+    function renderPnlTable() {
+      var list = pnlLoad();
+      var tbody = document.getElementById('pnl-tbody');
+      var table = document.getElementById('pnl-table');
+      var empty = document.getElementById('pnl-empty');
+      var totalEl = document.getElementById('pnl-total');
+      tbody.innerHTML = '';
+      if (list.length === 0) {
+        table.style.display = 'none';
+        empty.style.display = 'block';
+        totalEl.style.display = 'none';
+        return;
+      }
+      empty.style.display = 'none';
+      table.style.display = 'table';
+      var sumCost = 0, sumValue = 0;
+      list.forEach(function (p) {
+        var qty = Number(p.qty);
+        var avg = Number(p.avgBuyUsd);
+        var px = p.lastPriceUsd;
+        var cost = qty * avg;
+        var value = (px != null && Number.isFinite(px)) ? qty * px : null;
+        var pnl = (value != null) ? value - cost : null;
+        var pnlPct = (value != null && cost > 0) ? (pnl / cost) * 100 : null;
+        if (value != null) { sumCost += cost; sumValue += value; }
+        var sym = p.symbol || p.label || (p.contract ? p.contract.slice(0, 8) + '…' : p.chain.toUpperCase());
+        var tr = document.createElement('tr');
+        var tdPx = (px != null && Number.isFinite(px)) ? '$' + px.toLocaleString('en-US', { maximumFractionDigits: 6 }) : (p.lastError || '—');
+        var tdPnl = '—';
+        var cls = '';
+        if (pnl != null) {
+          tdPnl = (pnl >= 0 ? '+' : '') + '$' + pnl.toLocaleString('en-US', { maximumFractionDigits: 2 });
+          cls = pnl >= 0 ? 'pnl-pos' : 'pnl-neg';
+        }
+        var tdPct = (pnlPct != null) ? (pnlPct >= 0 ? '+' : '') + pnlPct.toFixed(2) + '%' : '—';
+        tr.innerHTML =
+          '<td>' + sym + '</td>' +
+          '<td>' + qty + '</td>' +
+          '<td>$' + avg.toLocaleString('en-US', { maximumFractionDigits: 6 }) + '</td>' +
+          '<td>' + tdPx + '</td>' +
+          '<td>$' + cost.toLocaleString('en-US', { maximumFractionDigits: 2 }) + '</td>' +
+          '<td>' + (value != null ? '$' + value.toLocaleString('en-US', { maximumFractionDigits: 2 }) : '—') + '</td>' +
+          '<td class="' + cls + '">' + tdPnl + '</td>' +
+          '<td class="' + cls + '">' + tdPct + '</td>' +
+          '<td><button type="button" class="btn-small" data-del="' + p.id + '">刪除</button></td>';
+        tbody.appendChild(tr);
+      });
+      tbody.querySelectorAll('[data-del]').forEach(function (btn) {
+        btn.onclick = function () {
+          var id = btn.getAttribute('data-del');
+          pnlSave(pnlLoad().filter(function (x) { return x.id !== id; }));
+          renderPnlTable();
+        };
+      });
+      var totalPnl = sumValue - sumCost;
+      if (list.some(function (p) { return p.lastPriceUsd != null; })) {
+        totalEl.style.display = 'block';
+        var pct = sumCost > 0 ? (totalPnl / sumCost) * 100 : 0;
+        var twdNote = currency === 'TWD' ? '<br><span style="font-size:0.85rem;color:var(--text-muted)">台幣參考：成本 ' + formatPrice(sumCost) + '　現值 ' + formatPrice(sumValue) + '</span>' : '';
+        totalEl.innerHTML =
+          '<strong>合計（已更新現價的持倉）</strong><br>' +
+          '總成本 USD：$' + sumCost.toLocaleString('en-US', { maximumFractionDigits: 2 }) + '　' +
+          '總現值 USD：$' + sumValue.toLocaleString('en-US', { maximumFractionDigits: 2 }) + '<br>' +
+          '<strong class="' + (totalPnl >= 0 ? 'pnl-pos' : 'pnl-neg') + '">總 PnL：' + (totalPnl >= 0 ? '+' : '') + '$' + totalPnl.toLocaleString('en-US', { maximumFractionDigits: 2 }) +
+          '（' + (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%）</strong>' + twdNote;
+      } else {
+        totalEl.style.display = 'none';
+      }
+    }
+
+    document.getElementById('btn-pnl-add').addEventListener('click', function () {
+      var chain = document.getElementById('pnl-chain').value.trim();
+      var contract = document.getElementById('pnl-contract').value.trim();
+      var label = document.getElementById('pnl-label').value.trim();
+      var qty = parseFloat(document.getElementById('pnl-qty').value);
+      var avg = parseFloat(document.getElementById('pnl-avg').value);
+      if (!chain || !Number.isFinite(qty) || qty <= 0 || !Number.isFinite(avg) || avg < 0) {
+        alert('請填寫鏈、有效數量與平均買入價（USD）。');
+        return;
+      }
+      var list = pnlLoad();
+      list.push({ id: pnlUid(), chain: chain, contract: contract || '', label: label, qty: qty, avgBuyUsd: avg });
+      pnlSave(list);
+      document.getElementById('pnl-qty').value = '';
+      document.getElementById('pnl-avg').value = '';
+      renderPnlTable();
+    });
+
+    document.getElementById('btn-pnl-refresh').addEventListener('click', async function () {
+      var list = pnlLoad();
+      if (list.length === 0) { alert('尚無持倉'); return; }
+      var btn = document.getElementById('btn-pnl-refresh');
+      btn.disabled = true;
+      btn.textContent = '更新中…';
+      for (var i = 0; i < list.length; i++) {
+        var p = list[i];
+        delete p.lastError;
+        delete p.lastPriceUsd;
+        delete p.symbol;
+        try {
+          var res = await fetch(API + '/api/token-price', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ chain: p.chain, contract: p.contract || '' })
+          });
+          var data = await res.json();
+          if (data.error || data.price == null) {
+            p.lastError = '價格失敗';
+          } else {
+            p.lastPriceUsd = Number(data.price);
+            p.symbol = data.symbol || p.label;
+          }
+        } catch (e) {
+          p.lastError = '網路錯誤';
+        }
+        list[i] = p;
+      }
+      pnlSave(list);
+      renderPnlTable();
+      btn.disabled = false;
+      btn.textContent = '更新行情（算 PnL）';
+    });
+
+    document.getElementById('btn-pnl-clear').addEventListener('click', function () {
+      if (!confirm('確定清空所有持倉？')) return;
+      pnlSave([]);
+      renderPnlTable();
+    });
+
+    document.getElementById('cur-usd').onclick = function () {
+      currency = 'USD';
+      document.getElementById('cur-usd').classList.add('active');
+      document.getElementById('cur-twd').classList.remove('active');
+      renderPnlTable();
+    };
+    document.getElementById('cur-twd').onclick = function () {
+      currency = 'TWD';
+      document.getElementById('cur-twd').classList.add('active');
+      document.getElementById('cur-usd').classList.remove('active');
+      renderPnlTable();
+    };
+
+    renderPnlTable();
+
+    document.getElementById('btn-price').addEventListener('click', async () => {
+      const chain = document.getElementById('price-chain').value.trim();
+      const contract = document.getElementById('price-contract').value.trim();
+      const btn = document.getElementById('btn-price');
+      const resultEl = document.getElementById('price-result');
+      setLoading(btn, true, '查詢價格');
+      resultEl.classList.remove('visible');
+      try {
+        const res = await fetch(API + '/api/token-price', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ chain, contract: contract || '' }),
+        });
+        const data = await res.json();
+        if (data.error) {
+          showResult(resultEl, '錯誤：' + data.error + (data.raw ? '\n' + data.raw : ''), true);
+          return;
+        }
+        const priceUsd = data.price != null ? Number(data.price) : null;
+        let html = '';
+        if (priceUsd != null && Number.isFinite(priceUsd)) {
+          html += '<span class="price-big">' + (data.symbol || '') + ' ≈ ' + formatPrice(priceUsd) + '</span>';
+          html += '<span class="currency-note">' + (currency === 'TWD' ? '參考匯率 1 USD ≈ ' + usdToTwd.toFixed(2) + ' TWD' : '') + '</span>';
+        } else {
+          html += '<span class="result-muted">無法取得價格</span>';
+        }
+        showResult(resultEl, html, false);
+      } catch (e) {
+        showResult(resultEl, '請求失敗：' + e.message, true);
+      } finally {
+        setLoading(btn, false, '查詢價格');
+      }
+    });
+
+    document.getElementById('btn-security').addEventListener('click', async () => {
+      const chain = document.getElementById('sec-chain').value.trim();
+      const contract = document.getElementById('sec-contract').value.trim();
+      if (!contract) {
+        showResult(document.getElementById('security-result'), '請輸入合約地址。', true);
+        return;
+      }
+      const btn = document.getElementById('btn-security');
+      const resultEl = document.getElementById('security-result');
+      setLoading(btn, true, '執行安全檢查');
+      resultEl.classList.remove('visible');
+      try {
+        const res = await fetch(API + '/api/security', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ chain, contract }),
+        });
+        const data = await res.json();
+        if (data.error) {
+          showResult(resultEl, '錯誤：' + data.error + (data.raw ? '\n' + data.raw : ''), true);
+          return;
+        }
+        let html = '';
+        const list = data.data && data.data[0];
+        if (list) {
+          const risk = list.riskCount || 0;
+          const warn = list.warnCount || 0;
+          const high = list.highRisk;
+          if (high || risk > 0) html += '<span class="security-bad">⚠ 存在風險，請謹慎</span>';
+          else if (warn > 0) html += '<span class="security-warn">有警告項，請留意</span>';
+          else html += '<span class="security-ok">未發現高風險項</span>';
+        } else {
+          html += '<span class="result-muted">無法取得審計結果</span>';
+        }
+        showResult(resultEl, html, false);
+      } catch (e) {
+        showResult(resultEl, '請求失敗：' + e.message, true);
+      } finally {
+        setLoading(btn, false, '執行安全檢查');
+      }
+    });
+
+    document.getElementById('btn-swap').addEventListener('click', async () => {
+      const fromChain = document.getElementById('swap-from-chain').value.trim();
+      const fromContract = document.getElementById('swap-from-contract').value.trim();
+      const toChain = document.getElementById('swap-to-chain').value.trim() || fromChain;
+      const toContract = document.getElementById('swap-to-contract').value.trim();
+      const amount = document.getElementById('swap-amount').value.trim();
+      if (!amount || !toContract) {
+        showResult(document.getElementById('swap-result'), '請填寫「數量」與「到合約」。', true);
+        return;
+      }
+      const btn = document.getElementById('btn-swap');
+      const resultEl = document.getElementById('swap-result');
+      setLoading(btn, true, '取得報價');
+      resultEl.classList.remove('visible');
+      try {
+        const res = await fetch(API + '/api/swap-quote', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            from_chain: fromChain,
+            from_contract: fromContract || '',
+            to_chain: toChain,
+            to_contract: toContract,
+            amount,
+          }),
+        });
+        const data = await res.json();
+        if (data.error) {
+          showResult(resultEl, '錯誤：' + data.error + (data.raw ? '\n' + data.raw : ''), true);
+          return;
+        }
+        let html = '';
+        const d = data.data;
+        if (d && d.toAmount != null) {
+          const num = parseFloat(d.toAmount);
+          if (!isNaN(num) && currency === 'TWD') {
+            html += '<span class="price-big">可換得 ≈ ' + d.toAmount + ' 代幣</span>';
+            html += '<span class="currency-note">若為穩定幣約 ' + formatPrice(num) + '</span>';
+          } else {
+            html += '<span class="price-big">可換得 ≈ ' + d.toAmount + '</span>';
+          }
+        } else {
+          html += '<span class="result-muted">無法取得報價</span>';
+        }
+        showResult(resultEl, html, false);
+      } catch (e) {
+        showResult(resultEl, '請求失敗：' + e.message, true);
+      } finally {
+        setLoading(btn, false, '取得報價');
+      }
+    });
+
+    document.getElementById('btn-order-quote').addEventListener('click', async () => {
+      var fromChain = document.getElementById('ord-from-chain').value.trim();
+      var fromContract = document.getElementById('ord-from-contract').value.trim();
+      var toChain = document.getElementById('ord-to-chain').value.trim();
+      var toContract = document.getElementById('ord-to-contract').value.trim();
+      var amount = document.getElementById('ord-amount').value.trim();
+      var fromAddress = document.getElementById('ord-from-address').value.trim();
+      var toAddress = document.getElementById('ord-to-address').value.trim();
+      if (!fromChain || !toChain || !toContract || !amount || !fromAddress) {
+        showResult(document.getElementById('order-quote-result'), '請填寫：從鏈、到鏈、到合約、數量、你的錢包地址。', true);
+        return;
+      }
+      var btn = document.getElementById('btn-order-quote');
+      var resultEl = document.getElementById('order-quote-result');
+      setLoading(btn, true, '取得報價中…');
+      resultEl.classList.remove('visible');
+      try {
+        var res = await fetch(API + '/api/order-quote', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            from_chain: fromChain,
+            from_contract: fromContract || '',
+            to_chain: toChain,
+            to_contract: toContract,
+            amount: amount,
+            from_address: fromAddress,
+            to_address: toAddress || undefined
+          })
+        });
+        var data = await res.json();
+        if (data.error) {
+          showResult(resultEl, '錯誤：' + data.error + (data.raw ? '<br>' + data.raw : ''), true);
+          lastOrderQuote = null;
+          return;
+        }
+        var d = data.data;
+        lastOrderQuote = {
+          market: d && d.market,
+          toAmount: d && d.toAmount,
+          from_chain: fromChain,
+          from_contract: fromContract || '',
+          to_chain: toChain,
+          to_contract: toContract,
+          amount: amount,
+          from_address: fromAddress,
+          to_address: toAddress || fromAddress
+        };
+        var html = '<span class="price-big">預估可換得 ≈ ' + (d && d.toAmount ? d.toAmount : '—') + '</span>';
+        if (d && d.market) html += '<span class="currency-note">market: ' + d.market + '（請在步驟② 建立訂單）</span>';
+        showResult(resultEl, html, false);
+      } catch (e) {
+        showResult(resultEl, '請求失敗：' + e.message, true);
+        lastOrderQuote = null;
+      } finally {
+        setLoading(btn, false, '1. 取得報價');
+      }
+    });
+
+    document.getElementById('btn-order-create').addEventListener('click', async () => {
+      if (!lastOrderQuote || !lastOrderQuote.market) {
+        showResult(document.getElementById('order-create-result'), '請先完成 ① 取得報價。', true);
+        return;
+      }
+      var slippage = document.getElementById('ord-slippage').value.trim() || '1';
+      var feature = document.getElementById('ord-feature').value.trim();
+      var btn = document.getElementById('btn-order-create');
+      var resultEl = document.getElementById('order-create-result');
+      setLoading(btn, true, '建立訂單中…');
+      resultEl.classList.remove('visible');
+      try {
+        var res = await fetch(API + '/api/order-create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            from_chain: lastOrderQuote.from_chain,
+            from_contract: lastOrderQuote.from_contract,
+            to_chain: lastOrderQuote.to_chain,
+            to_contract: lastOrderQuote.to_contract,
+            amount: lastOrderQuote.amount,
+            from_address: lastOrderQuote.from_address,
+            to_address: lastOrderQuote.to_address,
+            market: lastOrderQuote.market,
+            slippage: slippage,
+            feature: feature || undefined
+          })
+        });
+        var data = await res.json();
+        if (data.error) {
+          showResult(resultEl, '錯誤：' + data.error + (data.raw ? '<br>' + data.raw : ''), true);
+          return;
+        }
+        var orderId = data.data && (data.data.orderId || data.data.order_id);
+        lastOrderId = orderId || null;
+        if (orderId) {
+          document.getElementById('ord-order-id').value = orderId;
+          document.getElementById('ord-status-id').value = orderId;
+        }
+        var html = '訂單已建立。<span class="currency-note">請在 Bitget Wallet 或支援的錢包中簽名此筆交易，再將已簽名的 hex（0x...）貼到步驟③ 並按「送出已簽名交易」。</span>';
+        if (orderId) html += '<br><strong>訂單 ID：</strong>' + orderId;
+        showResult(resultEl, html, false);
+      } catch (e) {
+        showResult(resultEl, '請求失敗：' + e.message, true);
+      } finally {
+        setLoading(btn, false, '2. 建立訂單');
+      }
+    });
+
+    document.getElementById('btn-order-submit').addEventListener('click', async () => {
+      var orderId = document.getElementById('ord-order-id').value.trim();
+      var raw = document.getElementById('ord-signed-txs').value.trim();
+      var signedTxs = raw ? raw.replace(/,/g, ' ').split(/\s+/).filter(function (s) { return s && s.indexOf('0x') === 0; }) : [];
+      if (!orderId || signedTxs.length === 0) {
+        showResult(document.getElementById('order-submit-result'), '請填寫訂單 ID 與至少一筆已簽名交易 (0x...)。', true);
+        return;
+      }
+      var btn = document.getElementById('btn-order-submit');
+      var resultEl = document.getElementById('order-submit-result');
+      setLoading(btn, true, '送出中…');
+      resultEl.classList.remove('visible');
+      try {
+        var res = await fetch(API + '/api/order-submit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ order_id: orderId, signed_txs: signedTxs })
+        });
+        var data = await res.json();
+        if (data.error) {
+          showResult(resultEl, '錯誤：' + data.error + (data.raw ? '<br>' + data.raw : ''), true);
+          return;
+        }
+        var html = '<span class="security-ok">已送出。</span> ' + (data.msg || data.message || '請至錢包或區塊鏈瀏覽器查詢狀態。');
+        showResult(resultEl, html, false);
+      } catch (e) {
+        showResult(resultEl, '請求失敗：' + e.message, true);
+      } finally {
+        setLoading(btn, false, '3. 送出已簽名交易');
+      }
+    });
+
+    document.getElementById('btn-wallet-fill-cal').addEventListener('click', function () {
+      if (!evmAccount) {
+        alert('請先連接錢包');
+        return;
+      }
+      document.getElementById('cal-from-address').value = evmAccount;
+      var t = document.getElementById('cal-to-address');
+      if (t && !t.value.trim()) t.value = evmAccount;
+    });
+
+    function showCalFlow(html, isErr) {
+      var el = document.getElementById('cal-flow-result');
+      showResult(el, html, isErr);
+    }
+
+    document.getElementById('btn-cal-quote').addEventListener('click', async function () {
+      var chain = document.getElementById('cal-chain').value.trim();
+      var fromC = document.getElementById('cal-from-contract').value.trim();
+      var toC = document.getElementById('cal-to-contract').value.trim();
+      var amount = document.getElementById('cal-amount').value.trim();
+      if (!chain || !toC || !amount) {
+        showCalFlow('請填寫鏈、到合約、數量。', true);
+        return;
+      }
+      lastCalSwap = null;
+      lastCalTx = null;
+      var btn = document.getElementById('btn-cal-quote');
+      setLoading(btn, true, '報價中…');
+      try {
+        var res = await fetch(API + '/api/swap-quote', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            from_chain: chain,
+            from_contract: fromC || '',
+            to_chain: chain,
+            to_contract: toC,
+            amount: amount
+          })
+        });
+        var data = await res.json();
+        if (data.error || !data.data || !data.data.market) {
+          showCalFlow('報價失敗：' + (data.error || data.msg || '無 market'), true);
+          return;
+        }
+        var d = data.data;
+        lastCalSwap = {
+          chain: chain,
+          from_contract: fromC || '',
+          to_contract: toC,
+          amount: amount,
+          market: d.market,
+          slippage: d.slippage || '2'
+        };
+        showCalFlow('<strong>① 報價成功</strong><br>預估可得 ≈ ' + (d.toAmount || '—') + '<br>market: <code>' + d.market + '</code><br>請填好 From/To 地址後按「2. 取得 Calldata」。', false);
+      } catch (e) {
+        showCalFlow('請求失敗：' + e.message, true);
+      } finally {
+        setLoading(btn, false, '1. 取得報價');
+      }
+    });
+
+    document.getElementById('btn-cal-build').addEventListener('click', async function () {
+      if (!lastCalSwap) {
+        showCalFlow('請先完成「1. 取得報價」。', true);
+        return;
+      }
+      var fromAddr = document.getElementById('cal-from-address').value.trim();
+      var toAddr = document.getElementById('cal-to-address').value.trim() || fromAddr;
+      if (!fromAddr || !toAddr) {
+        showCalFlow('請填寫 From / To 地址（可點「帶入已連接錢包地址」）。', true);
+        return;
+      }
+      lastCalTx = null;
+      var btn = document.getElementById('btn-cal-build');
+      setLoading(btn, true, '取得 Calldata…');
+      try {
+        var res = await fetch(API + '/api/swap-calldata', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            from_chain: lastCalSwap.chain,
+            from_contract: lastCalSwap.from_contract,
+            to_chain: lastCalSwap.chain,
+            to_contract: lastCalSwap.to_contract,
+            amount: lastCalSwap.amount,
+            from_address: fromAddr,
+            to_address: toAddr,
+            market: lastCalSwap.market,
+            slippage: lastCalSwap.slippage
+          })
+        });
+        var data = await res.json();
+        if (data.error || !data.data || !data.data.calldata || !data.data.contract) {
+          showCalFlow('Calldata 失敗：' + (data.error || data.msg || '無資料'), true);
+          return;
+        }
+        lastCalTx = { to: data.data.contract, data: data.data.calldata, from: fromAddr };
+        showCalFlow('<strong>② Calldata 就緒</strong><br>合約：<code>' + data.data.contract + '</code><br>請確認錢包網路為 <strong>' + lastCalSwap.chain + '</strong>，再按「3. 錢包簽名並送出」。', false);
+      } catch (e) {
+        showCalFlow('請求失敗：' + e.message, true);
+      } finally {
+        setLoading(btn, false, '2. 取得 Calldata');
+      }
+    });
+
+    document.getElementById('btn-cal-send').addEventListener('click', async function () {
+      if (!lastCalTx) {
+        showCalFlow('請先完成「2. 取得 Calldata」。', true);
+        return;
+      }
+      var p = getEvmProvider();
+      if (!p || !evmAccount) {
+        showCalFlow('請先連接錢包。', true);
+        return;
+      }
+      if (lastCalTx.from.toLowerCase() !== evmAccount.toLowerCase()) {
+        showCalFlow('Calldata 的 From 地址須與目前連接錢包一致。請重新「2. 取得 Calldata」或改用正確錢包。', true);
+        return;
+      }
+      var btn = document.getElementById('btn-cal-send');
+      setLoading(btn, true, '等待錢包…');
+      try {
+        var txHash = await p.request({
+          method: 'eth_sendTransaction',
+          params: [{
+            from: evmAccount,
+            to: lastCalTx.to,
+            data: lastCalTx.data,
+            value: '0x0'
+          }]
+        });
+        showCalFlow('<strong>③ 已送出</strong><br>Tx Hash: <code>' + txHash + '</code>', false);
+      } catch (e) {
+        showCalFlow('錢包拒絕或失敗：' + (e && e.message ? e.message : e), true);
+      } finally {
+        setLoading(btn, false, '3. 錢包簽名並送出');
+      }
+    });
+
+    document.getElementById('btn-order-status').addEventListener('click', async function () {
+      var orderId = document.getElementById('ord-status-id').value.trim();
+      if (!orderId) {
+        showResult(document.getElementById('order-status-result'), '請輸入訂單 ID。', true);
+        return;
+      }
+      var btn = document.getElementById('btn-order-status');
+      var resultEl = document.getElementById('order-status-result');
+      setLoading(btn, true, '查詢中…');
+      resultEl.classList.remove('visible');
+      try {
+        var res = await fetch(API + '/api/order-status', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ order_id: orderId })
+        });
+        var data = await res.json();
+        if (data.error) {
+          showResult(resultEl, '錯誤：' + data.error + (data.raw ? '<br>' + data.raw : ''), true);
+          return;
+        }
+        var d = data.data;
+        var statusText = d && (d.status != null ? String(d.status) : (d.orderStatus != null ? String(d.orderStatus) : '—'));
+        var html = '<span class="price-big">狀態：' + statusText + '</span>';
+        if (data.msg) html += '<br><span class="currency-note">' + data.msg + '</span>';
+        if (d && typeof d === 'object') {
+          var keys = ['orderId', 'order_id', 'txHash', 'fromChain', 'toChain'];
+          keys.forEach(function (k) {
+            if (d[k] != null) html += '<br><span class="result-muted">' + k + ': ' + d[k] + '</span>';
+          });
+        }
+        showResult(resultEl, html, false);
+      } catch (e) {
+        showResult(resultEl, '請求失敗：' + e.message, true);
+      } finally {
+        setLoading(btn, false, '查詢狀態');
+      }
+    });
+
+    let chartInstance = null;
+    document.getElementById('btn-chart').addEventListener('click', async () => {
+      const chain = document.getElementById('chart-chain').value.trim();
+      const contract = document.getElementById('chart-contract').value.trim();
+      const period = document.getElementById('chart-period').value.trim();
+      const size = parseInt(document.getElementById('chart-size').value, 10) || 24;
+      const btn = document.getElementById('btn-chart');
+      const wrap = document.getElementById('chart-wrap');
+      const container = document.getElementById('chart-container');
+      setLoading(btn, true, '查詢走勢');
+      wrap.classList.remove('visible');
+      wrap.classList.remove('error');
+      if (chartInstance) {
+        chartInstance.remove();
+        chartInstance = null;
+      }
+      try {
+        const res = await fetch(API + '/api/kline', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ chain, contract: contract || '', period, size }),
+        });
+        const text = await res.text();
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch (parseErr) {
+          wrap.innerHTML = '伺服器回傳非 JSON（可能未啟動後端）。請從 <strong>' + (window.location.origin || 'http://127.0.0.1:5051') + '</strong> 開啟本頁，並先執行：<br><code>python3 web/server.py</code>';
+          wrap.classList.add('visible', 'error');
+          setLoading(btn, false, '查詢走勢');
+          return;
+        }
+        if (data.error) {
+          wrap.innerHTML = '錯誤：' + data.error + (data.raw ? '<br>' + data.raw : '');
+          wrap.classList.add('visible', 'error');
+          return;
+        }
+        const list = data.data && data.data.list;
+        if (!list || list.length === 0) {
+          wrap.innerHTML = '無 K 線資料';
+          wrap.classList.add('visible', 'error');
+          return;
+        }
+        wrap.innerHTML = '<div id="chart-container" style="width:100%;height:100%;"></div>';
+        wrap.classList.add('visible');
+        const chartEl = document.getElementById('chart-container');
+        var chartData = list.map(function (c) {
+          return {
+            time: Number(c.ts),
+            open: Number(c.open),
+            high: Number(c.high),
+            low: Number(c.low),
+            close: Number(c.close),
+          };
+        }).filter(function (d) {
+          return Number.isFinite(d.time) && Number.isFinite(d.open) && Number.isFinite(d.high) && Number.isFinite(d.low) && Number.isFinite(d.close);
+        });
+        if (chartData.length === 0) {
+          wrap.innerHTML = '無有效 K 線資料';
+          wrap.classList.add('visible', 'error');
+          setLoading(btn, false, '查詢走勢');
+          return;
+        }
+        chartInstance = LightweightCharts.createChart(chartEl, {
+          layout: {
+            background: { color: '#0A141A' },
+            textColor: '#848E9C',
+          },
+          grid: { vertLines: { color: '#1E2D38' }, horzLines: { color: '#1E2D38' } },
+          width: chartEl.clientWidth,
+          height: 320,
+          rightPriceScale: { borderColor: '#1E2D38', scaleMargins: { top: 0.1, bottom: 0.2 } },
+          timeScale: { borderColor: '#1E2D38', timeVisible: true, secondsVisible: false },
+        });
+        var candlestickSeries = chartInstance.addCandlestickSeries({
+          upColor: '#0ECB81',
+          downColor: '#F6465D',
+          borderDownColor: '#F6465D',
+          borderUpColor: '#0ECB81',
+        });
+        candlestickSeries.setData(chartData);
+        var lineData = chartData.map(function (d) { return { time: d.time, value: d.close }; });
+        var lineSeries = chartInstance.addLineSeries({ color: '#00E5CC', lineWidth: 2 });
+        lineSeries.setData(lineData);
+        chartInstance.timeScale().fitContent();
+      } catch (e) {
+        wrap.innerHTML = '請求失敗：' + e.message;
+        wrap.classList.add('visible', 'error');
+      } finally {
+        setLoading(btn, false, '查詢走勢');
+      }
+    });
+  </script>
+</body>
+</html>
