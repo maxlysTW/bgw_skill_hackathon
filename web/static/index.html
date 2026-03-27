@@ -34,7 +34,7 @@
       color: var(--text);
       line-height: 1.5;
     }
-    .container { max-width: 680px; margin: 0 auto; padding: 0 1.25rem 2rem; }
+    .container { max-width: 960px; margin: 0 auto; padding: 0 1.25rem 2rem; }
 
     .header-wrap {
       background: var(--bg-header);
@@ -43,9 +43,19 @@
       margin-bottom: 1.5rem;
     }
     .header-inner {
-      max-width: 680px;
+      max-width: 960px;
       margin: 0 auto;
       padding: 0 1.25rem;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1rem;
+    }
+
+    @media (min-width: 980px) {
+      .grid.two-col { grid-template-columns: 1.1fr 0.9fr; align-items: start; }
     }
     .brand {
       display: flex;
@@ -152,12 +162,18 @@
       color: var(--accent);
     }
     .form-row {
-      display: flex;
-      flex-wrap: wrap;
+      display: grid;
+      grid-template-columns: repeat(12, minmax(0, 1fr));
       gap: 0.75rem;
-      align-items: flex-end;
+      align-items: end;
       margin-bottom: 0.75rem;
     }
+    .span-12 { grid-column: span 12; }
+    .span-6 { grid-column: span 6; }
+    .span-4 { grid-column: span 4; }
+    .span-3 { grid-column: span 3; }
+    .span-2 { grid-column: span 2; }
+    .span-1 { grid-column: span 1; }
     .field {
       display: flex;
       flex-direction: column;
@@ -178,7 +194,16 @@
       border: 1px solid var(--border);
       border-radius: var(--radius-sm);
       color: var(--text);
-      min-width: 140px;
+      width: 100%;
+      min-width: 0;
+    }
+
+    @media (max-width: 640px) {
+      .card { padding: 1rem 1rem; }
+      .header-wrap { padding: 1.1rem 0 1rem; }
+      button.primary { width: 100%; }
+      .btn-small { width: 100%; }
+      .currency-wrap { width: 100%; justify-content: space-between; }
     }
     input::placeholder { color: var(--text-muted); }
     input:focus, select:focus {
@@ -357,11 +382,24 @@
   </header>
 
   <div class="container">
+    <div class="card" style="padding:0.85rem 1rem; margin-top:0; position: sticky; top: 0.5rem; z-index: 5; backdrop-filter: blur(10px); background: rgba(15,25,32,0.7);">
+      <div style="display:flex; flex-wrap:wrap; gap:0.5rem; align-items:center; justify-content: space-between;">
+        <div style="color:var(--text-muted); font-size:0.85rem;">快速導覽</div>
+        <div style="display:flex; flex-wrap:wrap; gap:0.5rem;">
+          <a class="btn-small" href="#wallet" style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center;">錢包</a>
+          <a class="btn-small" href="#market" style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center;">Market</a>
+          <a class="btn-small" href="#bot" style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center;">自動交易</a>
+          <a class="btn-small" href="#order" style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center;">Order</a>
+          <a class="btn-small" href="#chart" style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center;">走勢</a>
+          <a class="btn-small" href="#pnl" style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center;">PnL</a>
+        </div>
+      </div>
+    </div>
     <div class="notice">
       <strong>僅報價與流程，不自動交易。</strong> 這裡可查價格、安全檢查、Swap 報價；實際下單需您本人在錢包內確認並簽名，不會未經同意自動執行交易。
     </div>
 
-    <section class="card">
+    <section class="card" id="wallet">
       <h2>連接錢包（EVM）</h2>
       <p style="font-size:0.85rem; color: var(--text-muted); margin: 0 0 0.75rem 0;">優先使用 <strong>Bitget Wallet</strong> 擴充套件（<code>window.bitkeep.ethereum</code>），若沒有則嘗試 <code>window.ethereum</code>（如 MetaMask）。連線後可讀主幣餘額、帶入 Swap 地址；簽名仍由錢包彈窗確認。</p>
       <div class="form-row">
@@ -381,7 +419,7 @@
       <p style="font-size:0.78rem; color: var(--text-muted); margin: 0.75rem 0 0 0;"><strong>用程式發交易：</strong>取得 <code>provider</code> 後使用 <code>await provider.request({ method: 'eth_requestAccounts' })</code> 連線，再以 <code>eth_sendTransaction</code> 送出（<code>from</code> 須為目前帳戶、<code>to</code>/<code>data</code>/<code>value</code> 須與 API 回傳一致）。勿把私鑰寫進網頁。</p>
     </section>
 
-    <section class="card">
+    <section class="card" id="price">
       <h2>Token 價格</h2>
       <div class="form-row">
         <div class="field">
@@ -404,7 +442,7 @@
       <div class="result" id="price-result"></div>
     </section>
 
-    <section class="card">
+    <section class="card" id="market">
       <h2>Market 工具（熱門/熱度/流動性）</h2>
       <p style="font-size:0.85rem; color: var(--text-muted); margin: 0 0 0.75rem 0;">比賽用：用排行榜找標的，再用成交熱度與流動性快速檢查，最後再進入自動交易/半自動交易。</p>
       <div class="form-row">
@@ -433,7 +471,7 @@
       <div class="result" id="md-result"></div>
     </section>
 
-    <section class="card">
+    <section class="card" id="pnl">
       <h2>持倉 PnL 試算</h2>
       <p style="font-size:0.85rem; color: var(--text-muted); margin: 0 0 0.75rem 0;">手動輸入「買了多少、平均買入價（USD）」，按「更新行情」用 Bitget 價格 API 算現值與損益。資料只存在本機瀏覽器，不會上傳私鑰。黑客松比 PnL 時可搭配實盤持倉自行對照。</p>
       <div class="form-row">
@@ -492,7 +530,7 @@
       <div class="pnl-total" id="pnl-total" style="display:none"></div>
     </section>
 
-    <section class="card">
+    <section class="card" id="bot">
       <h2>單幣自動交易（半自動執行）</h2>
       <p style="font-size:0.85rem; color: var(--text-muted); margin: 0 0 0.75rem 0;">
         這是「自動策略 + 人類確認」：系統會用走勢（MA20）自動產生買/賣訊號，並準備 Order 訂單；你只要在出現訊號時按一次「執行交易」，由錢包彈窗確認（可能會有 1 次 approve + 1 次 swap）。
@@ -548,7 +586,7 @@
       <div class="result" id="bot-result"></div>
     </section>
 
-    <section class="card">
+    <section class="card" id="security">
       <h2>安全檢查</h2>
       <div class="form-row">
         <div class="field">
@@ -570,7 +608,7 @@
       <div class="result" id="security-result"></div>
     </section>
 
-    <section class="card">
+    <section class="card" id="swap-quote">
       <h2>Swap 報價</h2>
       <p style="font-size:0.85rem; color: var(--text-muted); margin: 0 0 0.75rem 0;">輸入從哪個代幣、數量、換成哪個代幣，取得預估可換數量。</p>
       <div class="form-row">
@@ -612,7 +650,7 @@
       <div class="result" id="swap-result"></div>
     </section>
 
-    <section class="card">
+    <section class="card" id="swap-calldata">
       <h2>同鏈 Swap（Calldata + 錢包簽名）</h2>
       <p style="font-size:0.85rem; color: var(--text-muted); margin: 0 0 0.75rem 0;">僅 <strong>EVM 同鏈</strong>（例如 Base 上 USDC→WETH）。流程：① 報價拿 <code>market</code> → ② 取得 <code>calldata</code> → ③ 用已連接錢包送出（<code>eth_sendTransaction</code>），錢包會跳出確認。請先將錢包切到對應網路。若需跨鏈請用下方 Order 模式。</p>
       <div class="form-row">
@@ -658,7 +696,7 @@
       <div class="result" id="cal-flow-result"></div>
     </section>
 
-    <section class="card">
+    <section class="card" id="order">
       <h2>半自動 Swap（Order 模式）</h2>
       <p style="font-size:0.85rem; color: var(--text-muted); margin: 0 0 0.5rem 0;">依序：① 取得報價 → ② 建立訂單（取得待簽名資料）→ ③ 在錢包內簽名 → ④ 貼上已簽名交易並送出。本頁不持有私鑰，僅代為取得報價、建立訂單、代為廣播已簽名交易。</p>
       <div class="semi-step">
@@ -755,7 +793,7 @@
       </div>
     </section>
 
-    <section class="card">
+    <section class="card" id="chart">
       <h2>幣的走勢圖</h2>
       <p style="font-size:0.85rem; color: var(--text-muted); margin: 0 0 0.25rem 0;">選擇鏈與代幣，取得 K 線走勢（開高低收）。</p>
       <p style="font-size:0.8rem; color: var(--text-muted); margin: 0 0 0.75rem 0;">想看 1 年：週期選「1 日」+ 筆數選「365」；想看 5～10 年：週期選「1 週」+ 筆數選「約 5 年」或「約 10 年」。</p>
@@ -987,7 +1025,15 @@
     attachChainDetect('bot-token', 'bot-chain', '自動交易標的');
     attachChainDetect('sec-contract', 'sec-chain', '安全檢查');
     attachChainDetect('chart-contract', 'chart-chain', '走勢圖');
+    attachChainDetect('swap-to-contract', 'swap-to-chain', 'Swap 目標');
 
+    bindEnter(['price-contract'], 'btn-price');
+    bindEnter(['sec-contract'], 'btn-security');
+    bindEnter(['swap-from-contract', 'swap-to-contract', 'swap-amount'], 'btn-swap');
+    bindEnter(['md-contract'], 'btn-md-check');
+    bindEnter(['bot-token', 'bot-usdc-amount'], 'btn-bot-start');
+    bindEnter(['ord-order-id', 'ord-signed-txs'], 'btn-order-submit');
+    bindEnter(['ord-status-id'], 'btn-order-status');
     function formatPrice(usdValue) {
       const n = Number(usdValue);
       if (!Number.isFinite(n) || n < 0) return '—';
@@ -1048,6 +1094,21 @@
       var sel = document.getElementById(chainSelectId);
       if (!inp || !sel) return;
       var last = '';
+      var t = null;
+      inp.addEventListener('input', function () {
+        if (t) clearTimeout(t);
+        t = setTimeout(async function () {
+          var v = inp.value.trim();
+          if (!v || v === last) return;
+          last = v;
+          var r = await detectChainForContract(v);
+          if (!r || !r.chain) return;
+          if (sel.value !== r.chain) {
+            toast('偵測到合約所在鏈', label + ' 建議切換到 ' + r.chain + '（' + (r.symbol || '') + '）', false);
+            sel.value = r.chain;
+          }
+        }, 450);
+      });
       inp.addEventListener('blur', async function () {
         var v = inp.value.trim();
         if (!v || v === last) return;
@@ -1058,6 +1119,21 @@
           toast('偵測到合約所在鏈', label + ' 建議切換到 ' + r.chain + '（' + (r.symbol || '') + '）', false);
           sel.value = r.chain;
         }
+      });
+    }
+
+    function bindEnter(inputIds, buttonId) {
+      var btn = document.getElementById(buttonId);
+      if (!btn) return;
+      inputIds.forEach(function (id) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        el.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            btn.click();
+          }
+        });
       });
     }
 
