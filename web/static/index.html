@@ -338,7 +338,7 @@
       <p style="font-size:0.85rem; color: var(--text-muted); margin: 0 0 0.75rem 0;">優先使用 <strong>Bitget Wallet</strong> 擴充套件（<code>window.bitkeep.ethereum</code>），若沒有則嘗試 <code>window.ethereum</code>（如 MetaMask）。連線後可讀主幣餘額、帶入 Swap 地址；簽名仍由錢包彈窗確認。</p>
       <div class="form-row">
         <button type="button" id="btn-wallet-connect" class="primary">連接錢包</button>
-        <button type="button" id="btn-wallet-disconnect" class="btn-small" style="display:none">斷開</button>
+        <button type="button" id="btn-wallet-disconnect" class="btn-small" style="display:none">斷開（僅本頁）</button>
         <button type="button" id="btn-wallet-refresh-bal" class="btn-small" style="display:none">讀取主幣餘額</button>
       </div>
       <div class="wallet-panel" id="wallet-panel" style="display:none">
@@ -869,6 +869,8 @@
       evmProvider = null;
       document.getElementById('wallet-balance').textContent = '—';
       updateWalletUI();
+      // Note: EVM wallets generally don't support programmatic permission revocation.
+      // This button clears the connection state for this page only.
     });
 
     document.getElementById('btn-wallet-refresh-bal').addEventListener('click', async function () {
