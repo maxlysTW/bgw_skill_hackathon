@@ -436,6 +436,62 @@
     </section>
 
     <section class="card">
+      <h2>單幣自動交易（半自動執行）</h2>
+      <p style="font-size:0.85rem; color: var(--text-muted); margin: 0 0 0.75rem 0;">
+        這是「自動策略 + 人類確認」：系統會用走勢（MA20）自動產生買/賣訊號，並準備 Order 訂單；你只要在出現訊號時按一次「執行交易」，由錢包彈窗確認（可能會有 1 次 approve + 1 次 swap）。
+      </p>
+      <div class="form-row">
+        <div class="field">
+          <label>鏈（EVM）</label>
+          <select id="bot-chain">
+            <option value="base">Base</option>
+            <option value="arbitrum">Arbitrum</option>
+            <option value="bnb">BNB Chain</option>
+            <option value="eth">Ethereum</option>
+            <option value="matic">Polygon</option>
+          </select>
+        </div>
+        <div class="field" style="flex:1; min-width:200px">
+          <label>交易標的合約（你要交易的幣）</label>
+          <input type="text" id="bot-token" placeholder="0x...（例如 meme 幣）" />
+        </div>
+        <div class="field">
+          <label>每次投入 USDC</label>
+          <input type="text" id="bot-usdc-amount" value="10" style="min-width:90px" />
+        </div>
+        <div class="field">
+          <label>週期</label>
+          <select id="bot-period">
+            <option value="15m">15m</option>
+            <option value="1h" selected>1h</option>
+            <option value="4h">4h</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>K 線筆數</label>
+          <select id="bot-size">
+            <option value="48">48</option>
+            <option value="96" selected>96</option>
+            <option value="168">168</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <button type="button" id="btn-bot-start" class="primary">開始監控</button>
+        <button type="button" id="btn-bot-stop" class="btn-small" style="display:none">停止</button>
+        <button type="button" id="btn-bot-exec" class="primary" disabled>執行交易</button>
+      </div>
+      <div class="wallet-panel" id="bot-panel" style="display:none">
+        <div><strong>狀態</strong> <span id="bot-status">—</span></div>
+        <div style="margin-top:0.35rem"><strong>訊號</strong> <span id="bot-signal">—</span></div>
+        <div style="margin-top:0.35rem"><strong>價格</strong> <span id="bot-price">—</span>　<strong>MA20</strong> <span id="bot-ma">—</span></div>
+        <div style="margin-top:0.35rem"><strong>持倉（估）</strong> USDC <span id="bot-hold-usdc">—</span>／Token <span id="bot-hold-token">—</span></div>
+        <div style="margin-top:0.35rem"><strong>最近訂單</strong> <span class="addr" id="bot-last-order">—</span></div>
+      </div>
+      <div class="result" id="bot-result"></div>
+    </section>
+
+    <section class="card">
       <h2>安全檢查</h2>
       <div class="form-row">
         <div class="field">
@@ -709,6 +765,8 @@
     var lastOrderId = null;
     var lastCalSwap = null;
     var lastCalTx = null;
+    var botTimer = null;
+    var botPendingPlan = null;
 
     var evmAccount = null;
     var evmChainIdHex = null;
@@ -1041,6 +1099,333 @@
     };
 
     renderPnlTable();
+
+    // ---- Single-coin auto trader (semi-automatic execution) ----
+    var BOT_STORAGE = 'bgw_bot_state_v1';
+    var USDC_BY_CHAIN = {
+      eth: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
+      bnb: '0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d',
+      base: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+      arbitrum: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+      matic: '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359'
+    };
+    function botLoad() {
+      try { return JSON.parse(localStorage.getItem(BOT_STORAGE) || '{}'); } catch (e) { return {}; }
+    }
+    function botSave(s) { localStorage.setItem(BOT_STORAGE, JSON.stringify(s || {})); }
+    function botSetText(id, v) { var el = document.getElementById(id); if (el) el.textContent = v; }
+    function botShow(html, isErr) { showResult(document.getElementById('bot-result'), html, !!isErr); }
+
+    function sma(values, n) {
+      if (!values || values.length < n) return null;
+      var sum = 0;
+      for (var i = values.length - n; i < values.length; i++) sum += values[i];
+      return sum / n;
+    }
+
+    async function botTick() {
+      var state = botLoad();
+      var chain = state.chain;
+      var token = state.token;
+      var period = state.period;
+      var size = state.size;
+      if (!chain || !token) return;
+
+      document.getElementById('bot-panel').style.display = 'block';
+      botSetText('bot-status', '監控中（每 30 秒刷新）');
+
+      try {
+        // 1) get kline (use close series)
+        var r = await fetch(API + '/api/kline', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ chain: chain, contract: token, period: period, size: size })
+        });
+        var j = await r.json();
+        if (j.error || !j.data || !j.data.list || j.data.list.length < 25) {
+          botShow('K 線資料不足或失敗：' + (j.error || j.msg || 'unknown'), true);
+          return;
+        }
+        var closes = j.data.list.map(function (c) { return Number(c.close); }).filter(function (x) { return Number.isFinite(x); });
+        var last = closes[closes.length - 1];
+        var ma20 = sma(closes, 20);
+
+        // 2) signal
+        var haveToken = Number(state.holdToken || 0) > 0;
+        var signal = 'HOLD';
+        if (ma20 != null) {
+          if (!haveToken && last > ma20) signal = 'BUY';
+          if (haveToken && last < ma20) signal = 'SELL';
+        }
+
+        botSetText('bot-signal', signal);
+        botSetText('bot-price', Number.isFinite(last) ? ('$' + last.toLocaleString('en-US', { maximumFractionDigits: 6 })) : '—');
+        botSetText('bot-ma', ma20 != null ? ('$' + ma20.toLocaleString('en-US', { maximumFractionDigits: 6 })) : '—');
+        botSetText('bot-hold-usdc', (state.holdUsdc != null ? String(state.holdUsdc) : '—'));
+        botSetText('bot-hold-token', (state.holdToken != null ? String(state.holdToken) : '—'));
+        botSetText('bot-last-order', state.lastOrderId || '—');
+
+        // 3) build plan (order quote/create)
+        botPendingPlan = null;
+        var execBtn = document.getElementById('btn-bot-exec');
+        execBtn.disabled = true;
+        if (signal === 'HOLD') {
+          botShow('無訊號（HOLD）。', false);
+          return;
+        }
+        if (!evmAccount) {
+          botShow('偵測到 ' + signal + ' 訊號，但尚未連接錢包。請先在上方「連接錢包（EVM）」完成連線。', true);
+          return;
+        }
+        // if wallet chain mismatch, warn but still allow user
+        var want = chain;
+        var walletChain = skillChainFromChainId(evmChainIdHex);
+        if (walletChain && walletChain !== want) {
+          botShow('偵測到 ' + signal + ' 訊號，但錢包目前網路為 ' + walletChain + '，請切到 ' + want + ' 後再執行。', true);
+          return;
+        }
+
+        var usdc = USDC_BY_CHAIN[chain];
+        if (!usdc) {
+          botShow('此鏈尚未內建 USDC 合約，請改用 base/eth/bnb/arbitrum/matic。', true);
+          return;
+        }
+
+        var fromContract = (signal === 'BUY') ? usdc : token;
+        var toContract = (signal === 'BUY') ? token : usdc;
+        var amount = (signal === 'BUY') ? String(state.usdcAmount) : String(state.holdToken || '0');
+        if (signal === 'SELL' && (!amount || Number(amount) <= 0)) {
+          botShow('SELL 訊號但目前 token 持倉為 0（估）。', true);
+          return;
+        }
+
+        // order quote
+        var rq = await fetch(API + '/api/order-quote', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            from_chain: chain,
+            from_contract: fromContract,
+            to_chain: chain,
+            to_contract: toContract,
+            amount: amount,
+            from_address: evmAccount,
+            to_address: evmAccount
+          })
+        });
+        var q = await rq.json();
+        if (q.error || !q.data || !q.data.market) {
+          botShow('報價失敗：' + (q.error || q.msg || 'unknown'), true);
+          return;
+        }
+        var market = q.data.market;
+        var toAmount = q.data.toAmount;
+
+        // order create (returns txs array; wallet will confirm)
+        var rc = await fetch(API + '/api/order-create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            from_chain: chain,
+            from_contract: fromContract,
+            to_chain: chain,
+            to_contract: toContract,
+            amount: amount,
+            from_address: evmAccount,
+            to_address: evmAccount,
+            market: market,
+            slippage: String(state.slippage || '1'),
+            feature: state.feature || ''
+          })
+        });
+        var c = await rc.json();
+        if (c.error || !c.data || !c.data.txs || !c.data.orderId) {
+          botShow('建單失敗：' + (c.error || c.msg || 'unknown'), true);
+          return;
+        }
+
+        botPendingPlan = {
+          signal: signal,
+          chain: chain,
+          fromContract: fromContract,
+          toContract: toContract,
+          fromAmount: amount,
+          estToAmount: toAmount,
+          orderId: c.data.orderId,
+          txs: c.data.txs
+        };
+
+        state.lastOrderId = c.data.orderId;
+        botSave(state);
+        botSetText('bot-last-order', state.lastOrderId);
+
+        execBtn.disabled = false;
+        botShow('<strong>偵測到 ' + signal + ' 訊號</strong><br>預估可得 ≈ ' + (toAmount || '—') + '<br>訂單已準備好：<code>' + c.data.orderId + '</code><br>按「執行交易」後，錢包會跳出確認（可能 2 次）。', false);
+      } catch (e) {
+        botShow('監控/建單失敗：' + e.message, true);
+      }
+    }
+
+    document.getElementById('btn-bot-start').addEventListener('click', async function () {
+      if (!getEvmProvider()) {
+        alert('請安裝 Bitget Wallet 擴充或 MetaMask。');
+        return;
+      }
+      var chain = document.getElementById('bot-chain').value.trim();
+      var token = document.getElementById('bot-token').value.trim();
+      var usdcAmount = document.getElementById('bot-usdc-amount').value.trim();
+      var period = document.getElementById('bot-period').value.trim();
+      var size = parseInt(document.getElementById('bot-size').value, 10) || 96;
+      if (!token) {
+        alert('請填寫交易標的合約地址（0x...）。');
+        return;
+      }
+      var state = botLoad();
+      state.chain = chain;
+      state.token = token;
+      state.usdcAmount = usdcAmount;
+      state.period = period;
+      state.size = size;
+      state.slippage = '1';
+      state.feature = ''; // optional: 'no_gas'
+      state.holdUsdc = state.holdUsdc || 0;
+      state.holdToken = state.holdToken || 0;
+      botSave(state);
+
+      document.getElementById('btn-bot-start').style.display = 'none';
+      document.getElementById('btn-bot-stop').style.display = 'inline-block';
+      document.getElementById('bot-panel').style.display = 'block';
+
+      if (botTimer) clearInterval(botTimer);
+      await botTick();
+      botTimer = setInterval(botTick, 30000);
+    });
+
+    document.getElementById('btn-bot-stop').addEventListener('click', function () {
+      if (botTimer) clearInterval(botTimer);
+      botTimer = null;
+      botPendingPlan = null;
+      document.getElementById('btn-bot-start').style.display = 'inline-block';
+      document.getElementById('btn-bot-stop').style.display = 'none';
+      botSetText('bot-status', '已停止');
+      document.getElementById('btn-bot-exec').disabled = true;
+    });
+
+    document.getElementById('btn-bot-exec').addEventListener('click', async function () {
+      if (!botPendingPlan) {
+        botShow('目前沒有可執行的交易計畫（請等待訊號）。', true);
+        return;
+      }
+      var p = getEvmProvider();
+      if (!p || !evmAccount) {
+        botShow('請先連接錢包。', true);
+        return;
+      }
+      var btn = document.getElementById('btn-bot-exec');
+      setLoading(btn, true, '等待錢包…');
+      try {
+        var txHashes = [];
+        var plan = botPendingPlan;
+        for (var i = 0; i < botPendingPlan.txs.length; i++) {
+          var t = botPendingPlan.txs[i];
+          if (!t || !t.data) continue;
+          var d = t.data;
+          var txParams = {
+            from: evmAccount,
+            to: d.to,
+            data: d.calldata,
+            value: '0x' + BigInt(String(d.value || '0')).toString(16)
+          };
+          // Let wallet estimate gas; set optional EIP-1559 if present
+          if (d.supportEIP1559) {
+            txParams.maxFeePerGas = '0x' + BigInt(String(d.maxFeePerGas || '0')).toString(16);
+            txParams.maxPriorityFeePerGas = '0x' + BigInt(String(d.maxPriorityFeePerGas || '0')).toString(16);
+          } else if (d.gasPrice) {
+            txParams.gasPrice = '0x' + BigInt(String(d.gasPrice || '0')).toString(16);
+          }
+          if (d.gasLimit) txParams.gas = '0x' + BigInt(String(d.gasLimit || '0')).toString(16);
+          var h = await p.request({ method: 'eth_sendTransaction', params: [txParams] });
+          txHashes.push(h);
+        }
+
+        var state = botLoad();
+        state.lastOrderId = botPendingPlan.orderId;
+        state.lastTxs = txHashes;
+        state.lastPlan = {
+          signal: plan.signal,
+          chain: plan.chain,
+          fromContract: plan.fromContract,
+          toContract: plan.toContract,
+          fromAmount: plan.fromAmount,
+          estToAmount: plan.estToAmount,
+          ts: Date.now()
+        };
+        state.trades = state.trades || [];
+        state.trades.push({
+          ts: Date.now(),
+          signal: plan.signal,
+          chain: plan.chain,
+          fromContract: plan.fromContract,
+          toContract: plan.toContract,
+          fromAmount: plan.fromAmount,
+          estToAmount: plan.estToAmount,
+          orderId: plan.orderId,
+          txs: txHashes
+        });
+        botSave(state);
+        botPendingPlan = null;
+        document.getElementById('btn-bot-exec').disabled = true;
+
+        botShow('<strong>已送出交易</strong><br>orderId: <code>' + state.lastOrderId + '</code><br>tx: <code>' + (txHashes[txHashes.length - 1] || '—') + '</code><br>正在自動查詢訂單狀態…', false);
+
+        // poll order-status and update estimated holdings using API response if possible; fallback to estimate
+        var tries = 0;
+        var done = false;
+        while (!done && tries < 30) {
+          tries++;
+          await new Promise(function (r) { setTimeout(r, 5000); });
+          var rs = await fetch(API + '/api/order-status', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ order_id: state.lastOrderId })
+          });
+          var st = await rs.json();
+          if (st.error) continue;
+          // Heuristic: if st.data has status/orderStatus equals success-ish or msg indicates success
+          var s = st.data && (st.data.status != null ? String(st.data.status) : (st.data.orderStatus != null ? String(st.data.orderStatus) : ''));
+          var msg = (st.msg || '').toLowerCase();
+          if (msg.indexOf('success') >= 0 || s === 'success' || s === '2' || s === '3') {
+            done = true;
+          }
+        }
+
+        // update local estimated holdings (based on estimated toAmount) — for UI/PnL reference only
+        var finalState = botLoad();
+        var lp = finalState.lastPlan;
+        if (lp && lp.chain) {
+          var estOut = Number(lp.estToAmount);
+          var inAmt = Number(lp.fromAmount);
+          if (lp.signal === 'BUY') {
+            // USDC -> token
+            finalState.holdUsdc = (Number(finalState.holdUsdc || 0) - inAmt);
+            if (Number.isFinite(estOut)) finalState.holdToken = (Number(finalState.holdToken || 0) + estOut);
+          } else if (lp.signal === 'SELL') {
+            // token -> USDC
+            finalState.holdToken = (Number(finalState.holdToken || 0) - inAmt);
+            if (Number.isFinite(estOut)) finalState.holdUsdc = (Number(finalState.holdUsdc || 0) + estOut);
+          }
+          botSave(finalState);
+        }
+        botSetText('bot-last-order', finalState.lastOrderId || '—');
+        botSetText('bot-hold-usdc', (finalState.holdUsdc != null ? String(finalState.holdUsdc) : '—'));
+        botSetText('bot-hold-token', (finalState.holdToken != null ? String(finalState.holdToken) : '—'));
+        botShow('已送出並完成查詢。持倉為「估算值」（依 order-quote 的 toAmount 更新），以實際鏈上成交為準；可用下方 Order 模式「查詢狀態」核對。', false);
+      } catch (e) {
+        botShow('送出失敗/被拒絕：' + (e && e.message ? e.message : e), true);
+      } finally {
+        setLoading(btn, false, '執行交易');
+      }
+    });
 
     document.getElementById('btn-price').addEventListener('click', async () => {
       const chain = document.getElementById('price-chain').value.trim();
