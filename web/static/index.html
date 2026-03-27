@@ -162,22 +162,18 @@
       color: var(--accent);
     }
     .form-row {
-      display: grid;
-      grid-template-columns: repeat(12, minmax(0, 1fr));
+      display: flex;
+      flex-wrap: wrap;
       gap: 0.75rem;
       align-items: end;
       margin-bottom: 0.75rem;
     }
-    .span-12 { grid-column: span 12; }
-    .span-6 { grid-column: span 6; }
-    .span-4 { grid-column: span 4; }
-    .span-3 { grid-column: span 3; }
-    .span-2 { grid-column: span 2; }
-    .span-1 { grid-column: span 1; }
     .field {
       display: flex;
       flex-direction: column;
       gap: 0.25rem;
+      flex: 1 1 180px;
+      min-width: 160px;
     }
     .field label {
       font-size: 0.75rem;
@@ -198,11 +194,25 @@
       min-width: 0;
     }
 
+    .form-row > button.primary,
+    .form-row > .btn-small,
+    .form-row > a.btn-small {
+      flex: 0 0 auto;
+      min-width: 120px;
+      width: auto;
+    }
+
     @media (max-width: 640px) {
       .card { padding: 1rem 1rem; }
       .header-wrap { padding: 1.1rem 0 1rem; }
-      button.primary { width: 100%; }
-      .btn-small { width: 100%; }
+      .form-row { gap: 0.6rem; }
+      .field { flex: 1 1 100%; min-width: 0; }
+      .form-row > button.primary,
+      .form-row > .btn-small,
+      .form-row > a.btn-small {
+        flex: 1 1 100%;
+        width: 100%;
+      }
       .currency-wrap { width: 100%; justify-content: space-between; }
     }
     input::placeholder { color: var(--text-muted); }
@@ -221,6 +231,12 @@
       border-radius: var(--radius-sm);
       cursor: pointer;
       transition: background 0.15s, transform 0.1s;
+      white-space: nowrap;
+      writing-mode: horizontal-tb;
+      min-height: 40px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
     }
     button.primary:hover { background: var(--accent-hover); }
     button.primary:active { transform: scale(0.98); }
@@ -314,6 +330,11 @@
       color: var(--text-muted);
       border-radius: var(--radius-sm);
       cursor: pointer;
+      white-space: nowrap;
+      writing-mode: horizontal-tb;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
     }
     .btn-small:hover { border-color: var(--danger); color: var(--danger); }
 
