@@ -7,6 +7,8 @@ import json
 import os
 import subprocess
 import sys
+import time
+from typing import Any, Dict, Tuple
 
 from flask import Flask, request, send_from_directory, jsonify
 
@@ -15,6 +17,18 @@ PROJECT_ROOT = os.path.dirname(APP_DIR)
 API_SCRIPT = os.path.join(PROJECT_ROOT, "scripts", "bitget_api.py")
 
 app = Flask(__name__, static_folder="static", static_url_path="")
+
+_CACHE: Dict[Tuple[str, str], Tuple[float, Any]] = {}
+
+
+def cached_json(key: Tuple[str, str], ttl_s: int, compute_fn):
+    now = time.time()
+    hit = _CACHE.get(key)
+    if hit and now - hit[0] <= ttl_s:
+        return hit[1]
+    val = compute_fn()
+    _CACHE[key] = (now, val)
+    return val
 
 
 def run_cmd(cmd_list):
@@ -54,7 +68,8 @@ def api_token_price():
     if not chain:
         return jsonify({"error": "chain is required"}), 400
     args = ["token-price", "--chain", chain, "--contract", contract]
-    return jsonify(run_cmd(args))
+    key = ("token-price", f"{chain}:{contract}")
+    return jsonify(cached_json(key, 8, lambda: run_cmd(args)))
 
 
 @app.route("/api/security", methods=["POST"])
@@ -65,7 +80,8 @@ def api_security():
     if not chain or not contract:
         return jsonify({"error": "chain and contract are required"}), 400
     args = ["security", "--chain", chain, "--contract", contract]
-    return jsonify(run_cmd(args))
+    key = ("security", f"{chain}:{contract}")
+    return jsonify(cached_json(key, 30, lambda: run_cmd(args)))
 
 
 @app.route("/api/kline", methods=["POST"])
@@ -85,8 +101,8 @@ def api_kline():
     if not chain:
         return jsonify({"error": "chain is required"}), 400
     args = ["kline", "--chain", chain, "--contract", contract, "--period", period, "--size", str(size)]
-    result = run_cmd(args)
-    return jsonify(result)
+    key = ("kline", f"{chain}:{contract}:{period}:{size}")
+    return jsonify(cached_json(key, 20, lambda: run_cmd(args)))
 
 
 @app.route("/api/swap-quote", methods=["POST"])
@@ -141,6 +157,35 @@ def api_swap_calldata():
     if deadline is not None and str(deadline).strip() != "":
         args.extend(["--deadline", str(int(deadline))])
     return jsonify(run_cmd(args))
+
+
+@app.route("/api/chain-detect", methods=["POST"])
+def api_chain_detect():
+    """
+    Best-effort chain detection for EVM contracts.
+    Returns first chain where token-price has symbol/name and price>0.
+    """
+    data = request.get_json() or {}
+    contract = (data.get("contract") or "").strip()
+    if not contract:
+        return jsonify({"error": "contract is required"}), 400
+    chains = data.get("chains") or ["base", "bnb", "arbitrum", "matic", "eth"]
+    results = []
+    for chain in chains:
+        chain = str(chain).strip()
+        if not chain:
+            continue
+        args = ["token-price", "--chain", chain, "--contract", contract]
+        key = ("token-price", f"{chain}:{contract}")
+        r = cached_json(key, 10, lambda: run_cmd(args))
+        sym = r.get("symbol") if isinstance(r, dict) else None
+        name = r.get("name") if isinstance(r, dict) else None
+        price = r.get("price") if isinstance(r, dict) else None
+        ok = bool(sym or name) and isinstance(price, (int, float)) and price > 0
+        results.append({"chain": chain, "ok": ok, "symbol": sym, "name": name, "price": price})
+        if ok:
+            return jsonify({"chain": chain, "symbol": sym, "name": name, "price": price, "candidates": results})
+    return jsonify({"chain": None, "candidates": results})
 
 
 @app.route("/api/order-quote", methods=["POST"])
@@ -222,6 +267,40 @@ def api_order_status():
         return jsonify({"error": "order_id is required"}), 400
     args = ["order-status", "--order-id", order_id]
     return jsonify(run_cmd(args))
+
+@app.route("/api/rankings", methods=["POST"])
+def api_rankings():
+    data = request.get_json() or {}
+    name = (data.get("name") or "topGainers").strip()
+    if name not in ("topGainers", "topLosers"):
+        return jsonify({"error": "name must be topGainers or topLosers"}), 400
+    args = ["rankings", "--name", name]
+    key = ("rankings", name)
+    return jsonify(cached_json(key, 20, lambda: run_cmd(args)))
+
+
+@app.route("/api/tx-info", methods=["POST"])
+def api_tx_info():
+    data = request.get_json() or {}
+    chain = (data.get("chain") or "").strip()
+    contract = (data.get("contract") or "").strip()
+    if not chain or not contract:
+        return jsonify({"error": "chain and contract are required"}), 400
+    args = ["tx-info", "--chain", chain, "--contract", contract]
+    key = ("tx-info", f"{chain}:{contract}")
+    return jsonify(cached_json(key, 15, lambda: run_cmd(args)))
+
+
+@app.route("/api/liquidity", methods=["POST"])
+def api_liquidity():
+    data = request.get_json() or {}
+    chain = (data.get("chain") or "").strip()
+    contract = (data.get("contract") or "").strip()
+    if not chain or not contract:
+        return jsonify({"error": "chain and contract are required"}), 400
+    args = ["liquidity", "--chain", chain, "--contract", contract]
+    key = ("liquidity", f"{chain}:{contract}")
+    return jsonify(cached_json(key, 30, lambda: run_cmd(args)))
 
 
 @app.errorhandler(Exception)

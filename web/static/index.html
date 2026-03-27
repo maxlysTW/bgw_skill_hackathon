@@ -302,6 +302,34 @@
     }
     .wallet-panel .addr { font-family: 'JetBrains Mono', monospace; word-break: break-all; color: var(--accent); }
     .wallet-row { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-top: 0.5rem; }
+
+    .toast-wrap {
+      position: fixed;
+      right: 16px;
+      bottom: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      z-index: 9999;
+      pointer-events: none;
+    }
+    .toast {
+      pointer-events: auto;
+      width: min(420px, calc(100vw - 32px));
+      background: rgba(15, 25, 32, 0.92);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 12px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+      backdrop-filter: blur(8px);
+      font-size: 0.88rem;
+    }
+    .toast strong { color: var(--accent); }
+    .toast.error strong { color: var(--danger); }
+    .toast .sub { color: var(--text-muted); font-size: 0.8rem; margin-top: 2px; }
+    .toast .row { display:flex; justify-content: space-between; gap: 8px; align-items: center; }
+    .toast .x { border:none; background: transparent; color: var(--text-muted); cursor: pointer; font-size: 0.95rem; }
+    .toast .x:hover { color: var(--text); }
   </style>
 </head>
 <body>
@@ -374,6 +402,35 @@
         <button type="button" id="btn-price" class="primary">查詢價格</button>
       </div>
       <div class="result" id="price-result"></div>
+    </section>
+
+    <section class="card">
+      <h2>Market 工具（熱門/熱度/流動性）</h2>
+      <p style="font-size:0.85rem; color: var(--text-muted); margin: 0 0 0.75rem 0;">比賽用：用排行榜找標的，再用成交熱度與流動性快速檢查，最後再進入自動交易/半自動交易。</p>
+      <div class="form-row">
+        <button type="button" id="btn-rank-gainers" class="primary">Top Gainers</button>
+        <button type="button" id="btn-rank-losers" class="primary">Top Losers</button>
+      </div>
+      <div class="result" id="rank-result"></div>
+      <div class="form-row" style="margin-top:0.75rem">
+        <div class="field">
+          <label>鏈</label>
+          <select id="md-chain">
+            <option value="bnb">BNB Chain</option>
+            <option value="base">Base</option>
+            <option value="arbitrum">Arbitrum</option>
+            <option value="matic">Polygon</option>
+            <option value="eth">Ethereum</option>
+            <option value="sol">Solana</option>
+          </select>
+        </div>
+        <div class="field" style="flex:1; min-width:220px">
+          <label>合約地址</label>
+          <input type="text" id="md-contract" placeholder="從排行榜點選或自行貼上" />
+        </div>
+        <button type="button" id="btn-md-check" class="primary">快速檢查</button>
+      </div>
+      <div class="result" id="md-result"></div>
     </section>
 
     <section class="card">
@@ -756,6 +813,8 @@
     </footer>
   </div>
 
+  <div class="toast-wrap" id="toast-wrap"></div>
+
   <script src="https://unpkg.com/lightweight-charts@3.8.0/dist/lightweight-charts.standalone.production.js"></script>
   <script>
     const API = '';
@@ -924,6 +983,11 @@
     }
     fetchTwdRate();
 
+    // Auto chain detection for common EVM contracts
+    attachChainDetect('bot-token', 'bot-chain', '自動交易標的');
+    attachChainDetect('sec-contract', 'sec-chain', '安全檢查');
+    attachChainDetect('chart-contract', 'chart-chain', '走勢圖');
+
     function formatPrice(usdValue) {
       const n = Number(usdValue);
       if (!Number.isFinite(n) || n < 0) return '—';
@@ -944,6 +1008,57 @@
     function setLoading(btn, on, label) {
       btn.disabled = on;
       btn.textContent = on ? '查詢中…' : label;
+    }
+
+    function toast(title, message, isError) {
+      var wrap = document.getElementById('toast-wrap');
+      var el = document.createElement('div');
+      el.className = 'toast' + (isError ? ' error' : '');
+      el.innerHTML = '<div class="row"><div><strong>' + title + '</strong></div><button class="x" aria-label="close">✕</button></div>' + (message ? '<div class="sub">' + message + '</div>' : '');
+      el.querySelector('.x').onclick = function () { el.remove(); };
+      wrap.appendChild(el);
+      setTimeout(function () { if (el && el.parentNode) el.remove(); }, 4500);
+    }
+
+    async function copyText(s) {
+      try {
+        await navigator.clipboard.writeText(String(s));
+        toast('已複製', String(s).slice(0, 64) + (String(s).length > 64 ? '…' : ''), false);
+      } catch (e) {
+        toast('複製失敗', (e && e.message) ? e.message : String(e), true);
+      }
+    }
+
+    async function detectChainForContract(contract) {
+      var c = String(contract || '').trim();
+      if (!c || c.length < 10) return null;
+      try {
+        var res = await fetch(API + '/api/chain-detect', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contract: c, chains: ['bnb', 'base', 'arbitrum', 'matic', 'eth'] })
+        });
+        var j = await res.json();
+        return j && j.chain ? j : null;
+      } catch (_) { return null; }
+    }
+
+    function attachChainDetect(inputId, chainSelectId, label) {
+      var inp = document.getElementById(inputId);
+      var sel = document.getElementById(chainSelectId);
+      if (!inp || !sel) return;
+      var last = '';
+      inp.addEventListener('blur', async function () {
+        var v = inp.value.trim();
+        if (!v || v === last) return;
+        last = v;
+        var r = await detectChainForContract(v);
+        if (!r || !r.chain) return;
+        if (sel.value !== r.chain) {
+          toast('偵測到合約所在鏈', label + ' 建議切換到 ' + r.chain + '（' + (r.symbol || '') + '）', false);
+          sel.value = r.chain;
+        }
+      });
     }
 
     var PNL_STORAGE = 'bgw_pnl_positions_v1';
@@ -1085,6 +1200,88 @@
       if (!confirm('確定清空所有持倉？')) return;
       pnlSave([]);
       renderPnlTable();
+    });
+
+    // ---- Market tools ----
+    function shortenAddr(a) {
+      var s = String(a || '');
+      if (s.length <= 12) return s;
+      return s.slice(0, 6) + '…' + s.slice(-4);
+    }
+
+    async function loadRankings(name) {
+      var el = document.getElementById('rank-result');
+      el.classList.remove('visible');
+      try {
+        var res = await fetch(API + '/api/rankings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: name })
+        });
+        var j = await res.json();
+        if (j.error) { showResult(el, '錯誤：' + j.error, true); return; }
+        var list = (j.data && (j.data.list || j.data)) || [];
+        if (!Array.isArray(list) || list.length === 0) { showResult(el, '無資料', true); return; }
+        var top = list.slice(0, 10);
+        var html = '<strong>' + name + '</strong><div class=\"currency-note\">點任一項會自動帶入合約並切換鏈</div>';
+        html += '<div style=\"margin-top:0.5rem; display:flex; flex-direction:column; gap:6px\">';
+        top.forEach(function (x, i) {
+          var chain = x.chain || x.chainName || x.chain_id || '';
+          var contract = x.contract || x.address || '';
+          var sym = x.symbol || x.name || 'Token';
+          var px = x.price != null ? ('$' + Number(x.price).toLocaleString('en-US', { maximumFractionDigits: 6 })) : '';
+          html += '<button type=\"button\" class=\"btn-small\" data-rk=\"1\" data-chain=\"' + chain + '\" data-contract=\"' + contract + '\" style=\"text-align:left\">' +
+            (i + 1) + '. ' + sym + ' ' + px + ' <span style=\"float:right;color:var(--text-muted)\">' + shortenAddr(contract) + '</span></button>';
+        });
+        html += '</div>';
+        showResult(el, html, false);
+        el.querySelectorAll('[data-rk]').forEach(function (b) {
+          b.onclick = function () {
+            var c = b.getAttribute('data-contract');
+            var ch = b.getAttribute('data-chain');
+            if (c) document.getElementById('md-contract').value = c;
+            // best effort: map chain label to our select values if already in set
+            var sel = document.getElementById('md-chain');
+            var v = String(ch || '').toLowerCase();
+            if (['eth','bnb','base','arbitrum','matic','sol'].indexOf(v) >= 0) sel.value = v;
+            toast('已帶入標的', (v ? v + ' ' : '') + shortenAddr(c), false);
+          };
+        });
+      } catch (e) {
+        showResult(el, '請求失敗：' + e.message, true);
+      }
+    }
+
+    document.getElementById('btn-rank-gainers').onclick = function () { loadRankings('topGainers'); };
+    document.getElementById('btn-rank-losers').onclick = function () { loadRankings('topLosers'); };
+
+    document.getElementById('btn-md-check').addEventListener('click', async function () {
+      var chain = document.getElementById('md-chain').value.trim();
+      var contract = document.getElementById('md-contract').value.trim();
+      var el = document.getElementById('md-result');
+      if (!chain || !contract) { showResult(el, '請填寫鏈與合約', true); return; }
+      el.classList.remove('visible');
+      try {
+        var [tx, liq, sec] = await Promise.all([
+          fetch(API + '/api/tx-info', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chain: chain, contract: contract }) }).then(r => r.json()),
+          fetch(API + '/api/liquidity', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chain: chain, contract: contract }) }).then(r => r.json()),
+          fetch(API + '/api/security', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chain: chain, contract: contract }) }).then(r => r.json())
+        ]);
+        if (tx.error || liq.error || sec.error) {
+          showResult(el, '錯誤：' + (tx.error || liq.error || sec.error), true);
+          return;
+        }
+        var risk = sec.data && sec.data[0] ? sec.data[0].riskCount : 0;
+        var warn = sec.data && sec.data[0] ? sec.data[0].warnCount : 0;
+        var vol24 = (tx.data && (tx.data.buyTurnover24h || tx.data.turnover24h || tx.data.volume24h)) || null;
+        var pools = liq.data && (liq.data.list || liq.data) || [];
+        var poolCount = Array.isArray(pools) ? pools.length : 0;
+        var html = '<span class=\"price-big\">安全：' + (risk > 0 ? '風險' : warn > 0 ? '警告' : 'OK') + '</span>';
+        html += '<span class=\"currency-note\">risk=' + risk + ', warn=' + warn + ' · pools=' + poolCount + (vol24 ? (' · 24h=' + vol24) : '') + '</span>';
+        showResult(el, html, false);
+      } catch (e) {
+        showResult(el, '請求失敗：' + e.message, true);
+      }
     });
 
     document.getElementById('cur-usd').onclick = function () {
